@@ -1,4 +1,3 @@
-// src/pages/AsistenciaPage.jsx
 import React from 'react';
 
 const Page = ({ title, children }) => (
