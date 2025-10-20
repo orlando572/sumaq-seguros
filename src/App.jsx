@@ -2,23 +2,47 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from './context/AuthContext';
 import Layout from "./components/Layout";
-import Login from "./pages/Login";
-import DashboardPage from './pages/DashboardPage';
-import AsistenciaPage from './pages/AsistenciaPage';
-import FinancieroPage from './pages/FinancieroPage';
-import PensionesPage from './pages/PensionesPage';
-import SegurosPage from './pages/SegurosPage';
-import ComparadorPage from './pages/ComparadorPage';
+import AdminLayout from "./components/AdminLayout";
+import Login from "./pages/user/Login";
+import DashboardPage from './pages/user/DashboardPage';
+import AsistenciaPage from './pages/user/AsistenciaPage';
+import FinancieroPage from './pages/user/FinancieroPage';
+import PensionesPage from './pages/user/PensionesPage';
+import SegurosPage from './pages/user/SegurosPage';
+import ComparadorPage from './pages/user/ComparadorPage';
+
+// Importar páginas de administrador
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsuariosPage from './pages/admin/AdminUsuariosPage';
+
+// Componente para proteger rutas de administrador
+function AdminRoute({ children }) {
+  const { isAuthenticated, isAdmin } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (!isAdmin()) {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  return children;
+}
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   return (
     <Routes>
       <Route 
         path="/login" 
-        element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} 
+        element={!isAuthenticated ? <Login /> : 
+          (isAdmin() ? <Navigate to="/admin/dashboard" /> : <Navigate to="/dashboard" />)
+        } 
       />
+      
+      {/* Rutas de Usuario Normal - Los admins también pueden acceder */}
       <Route 
         path="/" 
         element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}
@@ -30,8 +54,24 @@ function AppRoutes() {
         <Route path="pensiones" element={<PensionesPage />} />
         <Route path="seguros" element={<SegurosPage />} />
         <Route path="comparador" element={<ComparadorPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Route>
+
+      {/* Rutas de Administrador */}
+      <Route 
+        path="/admin" 
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="usuarios" element={<AdminUsuariosPage />} />
+      </Route>
+
+      {/* Ruta por defecto */}
+      <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );
 }

@@ -1,16 +1,19 @@
-import React from 'react';
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, MessageSquare, CreditCard, Users, Shield, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageSquare, CreditCard, Users, Shield, BarChart3, LogOut, ArrowLeftRight } from "lucide-react";
 import SidebarHeader from './SidebarHeader';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
-    const { logout } = useAuth();
+    const { logout, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const handleCambiarAAdmin = () => {
+        navigate('/admin/dashboard');
     };
 
     const menuItems = [
@@ -39,6 +42,15 @@ const Sidebar = () => {
                 ))}
             </nav>
             <div className="border-t border-emerald-700">
+                {/* Mostrar botón de cambio a Admin solo si el usuario es administrador */}
+                {isAdmin() && (
+                    <button
+                        onClick={handleCambiarAAdmin}
+                        className="w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-indigo-600 bg-emerald-800">
+                        <ArrowLeftRight size={20} className="text-emerald-200" />
+                        <span className="text-white text-sm font-medium">Ver como Admin</span>
+                    </button>
+                )}
                 <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-emerald-700">

@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, TrendingUp, DollarSign, PieChart } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
-
-const API_URL = "http://localhost:8090/api/financiero";
+import { useAuth } from '../../context/AuthContext';
+import FinancieroService from '../../service/user/FinancieroService';
 
 export default function FinancieroPage() {
     const { user } = useAuth();
@@ -25,12 +23,18 @@ export default function FinancieroPage() {
     const cargarDatos = async () => {
         setLoading(true);
         try {
-            const [resumenRes, aportesRes, saldosRes, estadisticasRes, comparativoRes] = await Promise.all([
-                axios.get(`${API_URL}/resumen/${user.idUsuario}`),
-                axios.get(`${API_URL}/aportes/${user.idUsuario}`),
-                axios.get(`${API_URL}/saldos/${user.idUsuario}`),
-                axios.get(`${API_URL}/estadisticas/${user.idUsuario}`),
-                axios.get(`${API_URL}/comparativo/${user.idUsuario}`)
+            const [
+                resumenRes,
+                aportesRes,
+                saldosRes,
+                estadisticasRes,
+                comparativoRes
+            ] = await Promise.all([
+                FinancieroService.obtenerResumen(user.idUsuario),
+                FinancieroService.obtenerAportes(user.idUsuario),
+                FinancieroService.obtenerSaldos(user.idUsuario),
+                FinancieroService.obtenerEstadisticas(user.idUsuario),
+                FinancieroService.obtenerComparativo(user.idUsuario)
             ]);
 
             setResumen(resumenRes.data);
@@ -40,14 +44,13 @@ export default function FinancieroPage() {
             setComparativo(comparativoRes.data);
         } catch (error) {
             console.error("Error al cargar datos:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleGenerarVisualizacion = () => {
-        if (sistema) {
-            setGenerado(true);
-        }
+        if (sistema) setGenerado(true);
     };
 
     const filtrarAportes = () => {
@@ -74,6 +77,7 @@ export default function FinancieroPage() {
     if (loading) {
         return <div className="text-center p-8">Cargando datos...</div>;
     }
+
 
     return (
         <div className="space-y-6">

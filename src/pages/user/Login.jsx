@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, UserPlus, X, Layers, LogIn, IdCard } from 'lucide-react';
-import UsuarioService from '../service/UsuarioService';
-import { useAuth } from '../context/AuthContext';
+import UsuarioService from '../../service/user/UsuarioService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
     const navigate = useNavigate();
