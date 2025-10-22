@@ -1,36 +1,35 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Edit2, Trash2, X, CheckCircle2, AlertCircle, User } from 'lucide-react';
-import AdminUsuarioService from '../../service/admin/AdminUsuarioService';
-import UsuarioService from '../../service/user/UsuarioService';
+import { Search, Plus, Edit2, Trash2, X, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
+import AdminAfpService from '../../service/admin/AdminAfpService';
 
-export default function AdminUsuariosPage() {
-    const [usuarios, setUsuarios] = useState([]);
+export default function AdminAfpsPage() {
+    const [afps, setAfps] = useState([]);
     const [estadisticas, setEstadisticas] = useState(null);
+    const [instituciones, setInstituciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState('');
     const [filtroEstado, setFiltroEstado] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [modoEdicion, setModoEdicion] = useState(false);
-    const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+    const [afpSeleccionada, setAfpSeleccionada] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const [roles, setRoles] = useState([]);
-    const [afps, setAfps] = useState([]);
 
     const [formData, setFormData] = useState({
-        nombre: '', apellido: '', dni: '', fechaNacimiento: '', genero: '',
-        estadoCivil: '', correo: '', telefono: '', direccion: '', distrito: '',
-        provincia: '', departamento: '', claveSol: '', centroTrabajo: '',
-        salarioActual: '', fechaIngresoTrabajo: '', tipoContrato: '',
-        cuspp: '', idAfp: '', tipoRegimen: '', fechaAfiliacion: '',
-        notificacionesEmail: false, notificacionesSms: false, estado: 'Activo',
-        idRol: ''
+        nombre: '',
+        codigoSbs: '',
+        comisionFlujo: '',
+        comisionSaldo: '',
+        comisionMixta: '',
+        rentabilidadPromedio: '',
+        fondosDisponibles: '["1", "2", "3"]',
+        estado: 'Activo',
+        idInstitucion: ''
     });
 
     useEffect(() => {
         cargarDatos();
-        cargarRoles();
-        cargarAfps();
+        cargarInstituciones();
     }, []);
 
     useEffect(() => {
@@ -46,11 +45,11 @@ export default function AdminUsuariosPage() {
     const cargarDatos = async () => {
         setLoading(true);
         try {
-            const [usuariosRes, statsRes] = await Promise.all([
-                AdminUsuarioService.listarUsuarios(busqueda, filtroEstado),
-                AdminUsuarioService.obtenerEstadisticas()
+            const [afpsRes, statsRes] = await Promise.all([
+                AdminAfpService.listarAfps(busqueda, filtroEstado),
+                AdminAfpService.obtenerEstadisticas()
             ]);
-            setUsuarios(usuariosRes.data);
+            setAfps(afpsRes.data);
             setEstadisticas(statsRes.data);
         } catch (error) {
             console.error("Error al cargar datos:", error);
@@ -59,22 +58,14 @@ export default function AdminUsuariosPage() {
         setLoading(false);
     };
 
-    const cargarRoles = async () => {
-        try {
-            const response = await UsuarioService.listarRoles();
-            setRoles(response.data);
-        } catch (error) {
-            console.error("Error al cargar roles:", error);
-        }
-    };
-
-    const cargarAfps = async () => {
-        try {
-            const response = await UsuarioService.listarAfps();
-            setAfps(response.data);
-        } catch (error) {
-            console.error("Error al cargar AFPs:", error);
-        }
+    const cargarInstituciones = async () => {
+        // Simulado - En producción, crear endpoint para listar instituciones
+        setInstituciones([
+            { idInstitucion: 1, nombre: 'Institución AFP Integra' },
+            { idInstitucion: 2, nombre: 'Institución AFP Prima' },
+            { idInstitucion: 3, nombre: 'Institución AFP Habitat' },
+            { idInstitucion: 4, nombre: 'Institución AFP Profuturo' }
+        ]);
     };
 
     const handleBuscar = () => {
@@ -83,60 +74,44 @@ export default function AdminUsuariosPage() {
 
     const handleNuevo = () => {
         setModoEdicion(false);
-        setUsuarioSeleccionado(null);
+        setAfpSeleccionada(null);
         limpiarFormulario();
         setShowModal(true);
     };
 
-    const handleEditar = (usuario) => {
+    const handleEditar = (afp) => {
         setModoEdicion(true);
-        setUsuarioSeleccionado(usuario);
+        setAfpSeleccionada(afp);
         setFormData({
-            nombre: usuario.nombre || '',
-            apellido: usuario.apellido || '',
-            dni: usuario.dni || '',
-            fechaNacimiento: usuario.fechaNacimiento || '',
-            genero: usuario.genero || '',
-            estadoCivil: usuario.estadoCivil || '',
-            correo: usuario.correo || '',
-            telefono: usuario.telefono || '',
-            direccion: usuario.direccion || '',
-            distrito: usuario.distrito || '',
-            provincia: usuario.provincia || '',
-            departamento: usuario.departamento || '',
-            claveSol: usuario.claveSol || '',
-            centroTrabajo: usuario.centroTrabajo || '',
-            salarioActual: usuario.salarioActual || '',
-            fechaIngresoTrabajo: usuario.fechaIngresoTrabajo || '',
-            tipoContrato: usuario.tipoContrato || '',
-            cuspp: usuario.cuspp || '',
-            idAfp: usuario.afp?.idAfp || '',
-            tipoRegimen: usuario.tipoRegimen || '',
-            fechaAfiliacion: usuario.fechaAfiliacion || '',
-            notificacionesEmail: usuario.notificacionesEmail || false,
-            notificacionesSms: usuario.notificacionesSms || false,
-            estado: usuario.estado || 'Activo',
-            idRol: usuario.rol?.idRol || ''
+            nombre: afp.nombre || '',
+            codigoSbs: afp.codigoSbs || '',
+            comisionFlujo: afp.comisionFlujo || '',
+            comisionSaldo: afp.comisionSaldo || '',
+            comisionMixta: afp.comisionMixta || '',
+            rentabilidadPromedio: afp.rentabilidadPromedio || '',
+            fondosDisponibles: afp.fondosDisponibles || '["1", "2", "3"]',
+            estado: afp.estado || 'Activo',
+            idInstitucion: afp.institucion?.idInstitucion || ''
         });
         setShowModal(true);
     };
 
     const handleEliminar = async (id) => {
-        if (window.confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta AFP?")) {
             try {
-                await AdminUsuarioService.eliminarUsuario(id);
-                setSuccessMessage("Usuario eliminado exitosamente");
+                await AdminAfpService.eliminarAfp(id);
+                setSuccessMessage("AFP eliminada exitosamente");
                 cargarDatos();
             } catch (error) {
                 console.error("Error al eliminar:", error);
-                setErrorMessage("Error al eliminar el usuario");
+                setErrorMessage("Error al eliminar la AFP");
             }
         }
     };
 
     const handleCambiarEstado = async (id, nuevoEstado) => {
         try {
-            await AdminUsuarioService.cambiarEstado(id, nuevoEstado);
+            await AdminAfpService.cambiarEstado(id, nuevoEstado);
             setSuccessMessage("Estado actualizado exitosamente");
             cargarDatos();
         } catch (error) {
@@ -146,35 +121,37 @@ export default function AdminUsuariosPage() {
     };
 
     const handleFormChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: value
         }));
     };
 
     const handleGuardar = async (e) => {
         e.preventDefault();
 
-        if (!formData.nombre || !formData.apellido || !formData.dni || !formData.correo) {
+        if (!formData.nombre || !formData.codigoSbs) {
             setErrorMessage("Por favor completa los campos obligatorios");
             return;
         }
 
         try {
-            const usuarioData = {
+            const afpData = {
                 ...formData,
-                rol: formData.idRol ? { idRol: parseInt(formData.idRol) } : null,
-                afp: formData.idAfp ? { idAfp: parseInt(formData.idAfp) } : null,
-                salarioActual: formData.salarioActual ? parseFloat(formData.salarioActual) : null
+                institucion: formData.idInstitucion ? { idInstitucion: parseInt(formData.idInstitucion) } : null,
+                comisionFlujo: formData.comisionFlujo ? parseFloat(formData.comisionFlujo) : null,
+                comisionSaldo: formData.comisionSaldo ? parseFloat(formData.comisionSaldo) : null,
+                comisionMixta: formData.comisionMixta ? parseFloat(formData.comisionMixta) : null,
+                rentabilidadPromedio: formData.rentabilidadPromedio ? parseFloat(formData.rentabilidadPromedio) : null
             };
 
-            if (modoEdicion && usuarioSeleccionado) {
-                await AdminUsuarioService.actualizarUsuario(usuarioSeleccionado.idUsuario, usuarioData);
-                setSuccessMessage("Usuario actualizado exitosamente");
+            if (modoEdicion && afpSeleccionada) {
+                await AdminAfpService.actualizarAfp(afpSeleccionada.idAfp, afpData);
+                setSuccessMessage("AFP actualizada exitosamente");
             } else {
-                await AdminUsuarioService.crearUsuario(usuarioData);
-                setSuccessMessage("Usuario creado exitosamente");
+                await AdminAfpService.crearAfp(afpData);
+                setSuccessMessage("AFP creada exitosamente");
             }
 
             setShowModal(false);
@@ -182,29 +159,34 @@ export default function AdminUsuariosPage() {
             cargarDatos();
         } catch (error) {
             console.error("Error al guardar:", error);
-            setErrorMessage(error.response?.data?.mensaje || "Error al guardar el usuario");
+            setErrorMessage(error.response?.data?.mensaje || "Error al guardar la AFP");
         }
     };
 
     const limpiarFormulario = () => {
         setFormData({
-            nombre: '', apellido: '', dni: '', fechaNacimiento: '', genero: '',
-            estadoCivil: '', correo: '', telefono: '', direccion: '', distrito: '',
-            provincia: '', departamento: '', claveSol: '', centroTrabajo: '',
-            salarioActual: '', fechaIngresoTrabajo: '', tipoContrato: '',
-            cuspp: '', idAfp: '', tipoRegimen: '', fechaAfiliacion: '',
-            notificacionesEmail: false, notificacionesSms: false, estado: 'Activo',
-            idRol: ''
+            nombre: '',
+            codigoSbs: '',
+            comisionFlujo: '',
+            comisionSaldo: '',
+            comisionMixta: '',
+            rentabilidadPromedio: '',
+            fondosDisponibles: '["1", "2", "3"]',
+            estado: 'Activo',
+            idInstitucion: ''
         });
     };
 
     const getEstadoBadge = (estado) => {
         const configs = {
             'Activo': 'bg-green-100 text-green-800',
-            'Inactivo': 'bg-gray-100 text-gray-800',
-            'Bloqueado': 'bg-red-100 text-red-800'
+            'Inactivo': 'bg-gray-100 text-gray-800'
         };
         return configs[estado] || configs['Activo'];
+    };
+
+    const formatPercent = (value) => {
+        return value ? `${parseFloat(value).toFixed(2)}%` : '-';
     };
 
     if (loading) {
@@ -212,7 +194,7 @@ export default function AdminUsuariosPage() {
             <div className="flex items-center justify-center h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Cargando usuarios...</p>
+                    <p className="text-gray-600">Cargando AFPs...</p>
                 </div>
             </div>
         );
@@ -236,34 +218,30 @@ export default function AdminUsuariosPage() {
 
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-gray-800">Gestión de Usuarios</h1>
+                <h1 className="text-3xl font-bold text-gray-800">Gestión de AFPs</h1>
                 <button
                     onClick={handleNuevo}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                 >
                     <Plus className="w-5 h-5" />
-                    Nuevo Usuario
+                    Nueva AFP
                 </button>
             </div>
 
             {/* Estadísticas */}
             {estadisticas && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <p className="text-gray-600 text-sm">Total Usuarios</p>
+                        <p className="text-gray-600 text-sm">Total AFPs</p>
                         <p className="text-2xl font-bold text-gray-800">{estadisticas.total}</p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg shadow-sm border border-green-200">
-                        <p className="text-gray-600 text-sm">Activos</p>
-                        <p className="text-2xl font-bold text-green-800">{estadisticas.activos}</p>
+                        <p className="text-gray-600 text-sm">Activas</p>
+                        <p className="text-2xl font-bold text-green-800">{estadisticas.activas}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
-                        <p className="text-gray-600 text-sm">Inactivos</p>
-                        <p className="text-2xl font-bold text-gray-800">{estadisticas.inactivos}</p>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-lg shadow-sm border border-red-200">
-                        <p className="text-gray-600 text-sm">Bloqueados</p>
-                        <p className="text-2xl font-bold text-red-800">{estadisticas.bloqueados}</p>
+                        <p className="text-gray-600 text-sm">Inactivas</p>
+                        <p className="text-2xl font-bold text-gray-800">{estadisticas.inactivas}</p>
                     </div>
                 </div>
             )}
@@ -276,7 +254,7 @@ export default function AdminUsuariosPage() {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Buscar por nombre, apellido o DNI..."
+                                placeholder="Buscar por nombre o código SBS..."
                                 value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
@@ -292,7 +270,6 @@ export default function AdminUsuariosPage() {
                         <option value="">Todos los estados</option>
                         <option value="Activo">Activo</option>
                         <option value="Inactivo">Inactivo</option>
-                        <option value="Bloqueado">Bloqueado</option>
                     </select>
                     <button
                         onClick={handleBuscar}
@@ -303,7 +280,7 @@ export default function AdminUsuariosPage() {
                 </div>
             </div>
 
-            {/* Tabla de usuarios */}
+            {/* Tabla de AFPs */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -311,55 +288,60 @@ export default function AdminUsuariosPage() {
                             <tr>
                                 <th className="px-4 py-3 text-left">ID</th>
                                 <th className="px-4 py-3 text-left">Nombre</th>
-                                <th className="px-4 py-3 text-left">DNI</th>
-                                <th className="px-4 py-3 text-left">Correo</th>
-                                <th className="px-4 py-3 text-left">Rol</th>
+                                <th className="px-4 py-3 text-left">Código SBS</th>
+                                <th className="px-4 py-3 text-right">Comisión Flujo</th>
+                                <th className="px-4 py-3 text-right">Comisión Saldo</th>
+                                <th className="px-4 py-3 text-right">Rentabilidad</th>
                                 <th className="px-4 py-3 text-left">Estado</th>
                                 <th className="px-4 py-3 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {usuarios.length > 0 ? (
-                                usuarios.map((usuario) => (
-                                    <tr key={usuario.idUsuario} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3">{usuario.idUsuario}</td>
+                            {afps.length > 0 ? (
+                                afps.map((afp) => (
+                                    <tr key={afp.idAfp} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3">{afp.idAfp}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                                    <User className="w-4 h-4 text-indigo-600" />
+                                                    <Building2 className="w-4 h-4 text-indigo-600" />
                                                 </div>
-                                                <span className="font-medium">{usuario.nombre} {usuario.apellido}</span>
+                                                <span className="font-medium">{afp.nombre}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">{usuario.dni}</td>
-                                        <td className="px-4 py-3">{usuario.correo}</td>
                                         <td className="px-4 py-3">
                                             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                                                {usuario.rol?.nombreRol || 'Sin rol'}
+                                                {afp.codigoSbs}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">{formatPercent(afp.comisionFlujo)}</td>
+                                        <td className="px-4 py-3 text-right">{formatPercent(afp.comisionSaldo)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <span className="text-green-600 font-semibold">
+                                                {formatPercent(afp.rentabilidadPromedio)}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
                                             <select
-                                                value={usuario.estado}
-                                                onChange={(e) => handleCambiarEstado(usuario.idUsuario, e.target.value)}
-                                                className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(usuario.estado)}`}
+                                                value={afp.estado}
+                                                onChange={(e) => handleCambiarEstado(afp.idAfp, e.target.value)}
+                                                className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(afp.estado)}`}
                                             >
                                                 <option value="Activo">Activo</option>
                                                 <option value="Inactivo">Inactivo</option>
-                                                <option value="Bloqueado">Bloqueado</option>
                                             </select>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-center gap-2">
                                                 <button
-                                                    onClick={() => handleEditar(usuario)}
+                                                    onClick={() => handleEditar(afp)}
                                                     className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
                                                     title="Editar"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleEliminar(usuario.idUsuario)}
+                                                    onClick={() => handleEliminar(afp.idAfp)}
                                                     className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
                                                     title="Eliminar"
                                                 >
@@ -371,8 +353,8 @@ export default function AdminUsuariosPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                                        No hay usuarios registrados
+                                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                                        No hay AFPs registradas
                                     </td>
                                 </tr>
                             )}
@@ -383,11 +365,11 @@ export default function AdminUsuariosPage() {
 
             {/* Modal de formulario */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl my-8">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
                         <div className="flex justify-between items-center p-6 border-b">
                             <h2 className="text-xl font-bold text-gray-800">
-                                {modoEdicion ? "Editar Usuario" : "Nuevo Usuario"}
+                                {modoEdicion ? "Editar AFP" : "Nueva AFP"}
                             </h2>
                             <button
                                 onClick={() => setShowModal(false)}
@@ -398,7 +380,7 @@ export default function AdminUsuariosPage() {
                         </div>
 
                         <form onSubmit={handleGuardar} className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
                                     <input
@@ -411,124 +393,75 @@ export default function AdminUsuariosPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Código SBS *</label>
                                     <input
                                         type="text"
-                                        name="apellido"
-                                        value={formData.apellido}
+                                        name="codigoSbs"
+                                        value={formData.codigoSbs}
                                         onChange={handleFormChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">DNI *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Comisión Flujo (%)</label>
                                     <input
-                                        type="text"
-                                        name="dni"
-                                        value={formData.dni}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                        required
-                                        maxLength="8"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo *</label>
-                                    <input
-                                        type="email"
-                                        name="correo"
-                                        value={formData.correo}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                    <input
-                                        type="tel"
-                                        name="telefono"
-                                        value={formData.telefono}
+                                        type="number"
+                                        step="0.01"
+                                        name="comisionFlujo"
+                                        value={formData.comisionFlujo}
                                         onChange={handleFormChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Nacimiento</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Comisión Saldo (%)</label>
                                     <input
-                                        type="date"
-                                        name="fechaNacimiento"
-                                        value={formData.fechaNacimiento}
+                                        type="number"
+                                        step="0.01"
+                                        name="comisionSaldo"
+                                        value={formData.comisionSaldo}
                                         onChange={handleFormChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Comisión Mixta (%)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        name="comisionMixta"
+                                        value={formData.comisionMixta}
+                                        onChange={handleFormChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rentabilidad Promedio (%)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        name="rentabilidadPromedio"
+                                        value={formData.rentabilidadPromedio}
+                                        onChange={handleFormChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Institución</label>
                                     <select
-                                        name="genero"
-                                        value={formData.genero}
+                                        name="idInstitucion"
+                                        value={formData.idInstitucion}
                                         onChange={handleFormChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                     >
-                                        <option value="">Seleccionar</option>
-                                        <option value="M">Masculino</option>
-                                        <option value="F">Femenino</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado Civil</label>
-                                    <select
-                                        name="estadoCivil"
-                                        value={formData.estadoCivil}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Seleccionar</option>
-                                        <option value="Soltero">Soltero</option>
-                                        <option value="Casado">Casado</option>
-                                        <option value="Divorciado">Divorciado</option>
-                                        <option value="Viudo">Viudo</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                                    <select
-                                        name="idRol"
-                                        value={formData.idRol}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Seleccionar Rol</option>
-                                        {roles.map(rol => (
-                                            <option key={rol.idRol} value={rol.idRol}>{rol.nombreRol}</option>
+                                        <option value="">Seleccionar Institución</option>
+                                        {instituciones.map(inst => (
+                                            <option key={inst.idInstitucion} value={inst.idInstitucion}>
+                                                {inst.nombre}
+                                            </option>
                                         ))}
                                     </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">AFP</label>
-                                    <select
-                                        name="idAfp"
-                                        value={formData.idAfp}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Seleccionar AFP</option>
-                                        {afps.map(afp => (
-                                            <option key={afp.idAfp} value={afp.idAfp}>{afp.nombre}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Clave SOL</label>
-                                    <input
-                                        type="password"
-                                        name="claveSol"
-                                        value={formData.claveSol}
-                                        onChange={handleFormChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
@@ -540,18 +473,19 @@ export default function AdminUsuariosPage() {
                                     >
                                         <option value="Activo">Activo</option>
                                         <option value="Inactivo">Inactivo</option>
-                                        <option value="Bloqueado">Bloqueado</option>
                                     </select>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Fondos Disponibles (JSON)</label>
                                     <input
                                         type="text"
-                                        name="direccion"
-                                        value={formData.direccion}
+                                        name="fondosDisponibles"
+                                        value={formData.fondosDisponibles}
                                         onChange={handleFormChange}
+                                        placeholder='["1", "2", "3"]'
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">Ejemplo: ["1", "2", "3"]</p>
                                 </div>
                             </div>
 
@@ -567,7 +501,7 @@ export default function AdminUsuariosPage() {
                                     type="submit"
                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                                 >
-                                    {modoEdicion ? "Actualizar" : "Crear"} Usuario
+                                    {modoEdicion ? "Actualizar" : "Crear"} AFP
                                 </button>
                             </div>
                         </form>

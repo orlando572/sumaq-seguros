@@ -14,6 +14,7 @@ import ComparadorPage from './pages/user/ComparadorPage';
 // Importar páginas de administrador
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsuariosPage from './pages/admin/AdminUsuariosPage';
+import AdminAfpsPage from './pages/admin/AdminAfpsPage';
 
 // Componente para proteger rutas de administrador
 function AdminRoute({ children }) {
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/admin/dashboard" />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="usuarios" element={<AdminUsuariosPage />} />
+        <Route path="afps" element={<AdminAfpsPage />} />
       </Route>
 
       {/* Ruta por defecto */}

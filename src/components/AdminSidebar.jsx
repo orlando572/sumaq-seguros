@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { 
     LayoutDashboard, 
     Users, 
+    Building2,
     LogOut,
     ArrowLeftRight
 } from "lucide-react";
@@ -24,6 +25,7 @@ const AdminSidebar = () => {
     const menuItems = [
         { path: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard Admin" },
         { path: "/admin/usuarios", icon: Users, label: "Gestión de Usuarios" },
+        { path: "/admin/afps", icon: Building2, label: "Gestión de AFPs" },
     ];
 
     return (
