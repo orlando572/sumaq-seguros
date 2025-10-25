@@ -10,6 +10,7 @@ import FinancieroPage from './pages/user/FinancieroPage';
 import PensionesPage from './pages/user/PensionesPage';
 import SegurosPage from './pages/user/SegurosPage';
 import ComparadorPage from './pages/user/ComparadorPage';
+import PerfilPage from './pages/user/PerfilPage';
 
 // Importar páginas de administrador
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="pensiones" element={<PensionesPage />} />
         <Route path="seguros" element={<SegurosPage />} />
         <Route path="comparador" element={<ComparadorPage />} />
+        <Route path="perfil" element={<PerfilPage />} />
       </Route>
 
       {/* Rutas de Administrador */}
