@@ -13,7 +13,7 @@ import ComparadorPage from './pages/user/ComparadorPage';
 import PerfilPage from './pages/user/PerfilPage';
 
 // Importar páginas de administrador
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+
 import AdminUsuariosPage from './pages/admin/AdminUsuariosPage';
 import AdminAfpsPage from './pages/admin/AdminAfpsPage';
 
@@ -40,7 +40,7 @@ function AppRoutes() {
       <Route 
         path="/login" 
         element={!isAuthenticated ? <Login /> : 
-          (isAdmin() ? <Navigate to="/admin/dashboard" /> : <Navigate to="/dashboard" />)
+          (isAdmin() ? <Navigate to="/admin/usuarios" /> : <Navigate to="/dashboard" />)
         } 
       />
       
@@ -68,8 +68,7 @@ function AppRoutes() {
           </AdminRoute>
         }
       >
-        <Route index element={<Navigate to="/admin/dashboard" />} />
-        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route index element={<Navigate to="/admin/usuarios" />} />
         <Route path="usuarios" element={<AdminUsuariosPage />} />
         <Route path="afps" element={<AdminAfpsPage />} />
       </Route>
