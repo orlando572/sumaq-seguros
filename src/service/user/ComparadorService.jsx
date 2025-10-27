@@ -1,41 +1,41 @@
-import axios from 'axios';
+import axiosInstance from '../../config/axiosConfig';
 
-const API_URL = "http://localhost:8090/api/comparador";
+const API_URL = "/comparador";
 
 const ComparadorService = {
     // Obtener todas las categorías
     obtenerCategorias() {
-        return axios.get(`${API_URL}/categorias`);
+        return axiosInstance.get(`${API_URL}/categorias`);
     },
 
     // Obtener tipos de seguro por categoría
     obtenerTiposPorCategoria(categoria) {
-        return axios.get(`${API_URL}/tipos/${categoria}`);
+        return axiosInstance.get(`${API_URL}/tipos/${categoria}`);
     },
 
     // Obtener todas las compañías
     obtenerCompanias() {
-        return axios.get(`${API_URL}/companias`);
+        return axiosInstance.get(`${API_URL}/companias`);
     },
 
     // Obtener seguros por categoría
     obtenerSegurosPorCategoria(categoria) {
-        return axios.get(`${API_URL}/seguros/categoria/${categoria}`);
+        return axiosInstance.get(`${API_URL}/seguros/categoria/${categoria}`);
     },
 
     // Obtener seguros por tipo
     obtenerSegurosPorTipo(idTipo) {
-        return axios.get(`${API_URL}/seguros/tipo/${idTipo}`);
+        return axiosInstance.get(`${API_URL}/seguros/tipo/${idTipo}`);
     },
 
     // Obtener seguros por compañía
     obtenerSegurosPorCompania(idCompania) {
-        return axios.get(`${API_URL}/seguros/compania/${idCompania}`);
+        return axiosInstance.get(`${API_URL}/seguros/compania/${idCompania}`);
     },
 
     // Comparar planes
     compararPlanes(idsPlanes) {
-        return axios.post(`${API_URL}/comparar`, { idsPlanes });
+        return axiosInstance.post(`${API_URL}/comparar`, { idsPlanes });
     },
 
     // Filtrar seguros
@@ -55,17 +55,17 @@ const ComparadorService = {
             url += `&coberturaMax=${coberturaMax}`;
         }
         
-        return axios.get(url);
+        return axiosInstance.get(url);
     },
 
     // Obtener resumen de plan
     obtenerResumenPlan(idSeguro) {
-        return axios.get(`${API_URL}/plan/${idSeguro}`);
+        return axiosInstance.get(`${API_URL}/plan/${idSeguro}`);
     },
 
     // Obtener estadísticas por categoría
     obtenerEstadisticas(categoria) {
-        return axios.get(`${API_URL}/estadisticas/${categoria}`);
+        return axiosInstance.get(`${API_URL}/estadisticas/${categoria}`);
     }
 };
 

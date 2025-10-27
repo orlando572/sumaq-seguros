@@ -1,26 +1,26 @@
-import axios from 'axios';
+import axiosInstance from '../../config/axiosConfig';
 
-const API_URL = "http://localhost:8090/api/financiero";
+const API_URL = "/financiero";
 
 const FinancieroService = {
     obtenerResumen(idUsuario) {
-        return axios.get(`${API_URL}/resumen/${idUsuario}`);
+        return axiosInstance.get(`${API_URL}/resumen/${idUsuario}`);
     },
 
     obtenerAportes(idUsuario) {
-        return axios.get(`${API_URL}/aportes/${idUsuario}`);
+        return axiosInstance.get(`${API_URL}/aportes/${idUsuario}`);
     },
 
     obtenerSaldos(idUsuario) {
-        return axios.get(`${API_URL}/saldos/${idUsuario}`);
+        return axiosInstance.get(`${API_URL}/saldos/${idUsuario}`);
     },
 
     obtenerEstadisticas(idUsuario) {
-        return axios.get(`${API_URL}/estadisticas/${idUsuario}`);
+        return axiosInstance.get(`${API_URL}/estadisticas/${idUsuario}`);
     },
 
     obtenerComparativo(idUsuario) {
-        return axios.get(`${API_URL}/comparativo/${idUsuario}`);
+        return axiosInstance.get(`${API_URL}/comparativo/${idUsuario}`);
     }
 };
 

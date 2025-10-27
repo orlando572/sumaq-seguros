@@ -1,31 +1,31 @@
-import axios from 'axios';
+import axiosInstance from '../../config/axiosConfig';
 
-const API_URL = "http://localhost:8090/api/usuario";
+const API_URL = "/usuario";
 
 const UsuarioService = {
     // Login (busca usuario por DNI y claveSol)
     login(dni, claveSol) {
-        return axios.post(`${API_URL}/login`, { dni, claveSol });
+        return axiosInstance.post(`${API_URL}/login`, { dni, claveSol });
     },
 
     // Registrar usuario
     registrarUsuario(usuario) {
-        return axios.post(`${API_URL}/registrarUsuario`, usuario);
+        return axiosInstance.post(`${API_URL}/registrarUsuario`, usuario);
     },
 
     // Obtener usuario por ID
     obtenerUsuarioPorId(id) {
-        return axios.get(`${API_URL}/buscarPorId/${id}`);
+        return axiosInstance.get(`${API_URL}/buscarPorId/${id}`);
     },
 
     // Listar roles
     listarRoles() {
-        return axios.get(`${API_URL}/roles`);
+        return axiosInstance.get(`${API_URL}/roles`);
     },
 
     // Listar AFPs
     listarAfps() {
-        return axios.get(`${API_URL}/afps`);
+        return axiosInstance.get(`${API_URL}/afps`);
     }
 };
 

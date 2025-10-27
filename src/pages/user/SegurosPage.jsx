@@ -201,6 +201,59 @@ export default function SegurosPage() {
         }
     };
 
+    const handleGuardarPoliza = async (e) => {
+        e.preventDefault();
+        try {
+            const polizaData = {
+                usuario: { idUsuario: user.idUsuario },
+                tipoSeguro: { idTipoSeguro: parseInt(formPoliza.tipoSeguro) },
+                compania: { idCompania: parseInt(formPoliza.compania) },
+                numeroPoliza: formPoliza.numeroPoliza,
+                fechaInicio: formPoliza.fechaInicio,
+                fechaVencimiento: formPoliza.fechaVencimiento,
+                montoAsegurado: parseFloat(formPoliza.montoAsegurado),
+                primaMensual: parseFloat(formPoliza.primaMensual),
+                formaPago: formPoliza.formaPago,
+                estado: 'Vigente'
+            };
+
+            if (selectedPoliza) {
+                await SegurosService.actualizarPoliza(selectedPoliza.idSeguro, polizaData);
+                setSuccessMessage("Póliza actualizada exitosamente");
+            } else {
+                await SegurosService.crearPoliza(polizaData);
+                setSuccessMessage("Póliza creada exitosamente");
+            }
+
+            setShowPolizaModal(false);
+            limpiarFormularioPoliza();
+            cargarDatos();
+        } catch (error) {
+            console.error("Error al guardar póliza:", error);
+            setErrorMessage(error.response?.data?.mensaje || "Error al guardar la póliza");
+        }
+    };
+
+    const handlePagar = async (pago) => {
+        if (window.confirm(`¿Confirmar pago de ${formatCurrency(pago.montoPagado)}?`)) {
+            try {
+                const pagoData = {
+                    ...pago,
+                    estado: 'Pagado',
+                    fechaPago: new Date().toISOString().split('T')[0],
+                    metodoPago: 'Tarjeta'
+                };
+
+                await SegurosService.registrarPago(pagoData);
+                setSuccessMessage("Pago registrado exitosamente");
+                cargarDatos();
+            } catch (error) {
+                console.error("Error al registrar pago:", error);
+                setErrorMessage("Error al procesar el pago");
+            }
+        }
+    };
+
     const getEstadoBadge = (estado) => {
         const configs = {
             'Vigente': 'bg-green-100 text-green-800',
@@ -427,7 +480,10 @@ export default function SegurosPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-center">
-                                                <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors">
+                                                <button 
+                                                    onClick={() => handlePagar(pago)}
+                                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                                                >
                                                     Pagar
                                                 </button>
                                             </td>
@@ -528,6 +584,183 @@ export default function SegurosPage() {
                     </div>
                 )}
             </div>
+
+            {/* MODAL NUEVA/EDITAR PÓLIZA */}
+            {showPolizaModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">
+                                {selectedPoliza ? 'Editar Póliza' : 'Nueva Póliza'}
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowPolizaModal(false);
+                                    limpiarFormularioPoliza();
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleGuardarPoliza} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Tipo de Seguro *
+                                    </label>
+                                    <select
+                                        name="tipoSeguro"
+                                        value={formPoliza.tipoSeguro}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="1">Vida</option>
+                                        <option value="2">Salud</option>
+                                        <option value="3">Vehicular</option>
+                                        <option value="4">Hogar</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Compañía *
+                                    </label>
+                                    <select
+                                        name="compania"
+                                        value={formPoliza.compania}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="1">Pacífico Seguros</option>
+                                        <option value="2">Rímac Seguros</option>
+                                        <option value="3">La Positiva</option>
+                                        <option value="4">Mapfre</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        N° de Póliza *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="numeroPoliza"
+                                        value={formPoliza.numeroPoliza}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        placeholder="POL-2024-001"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Forma de Pago *
+                                    </label>
+                                    <select
+                                        name="formaPago"
+                                        value={formPoliza.formaPago}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                    >
+                                        <option value="Mensual">Mensual</option>
+                                        <option value="Trimestral">Trimestral</option>
+                                        <option value="Semestral">Semestral</option>
+                                        <option value="Anual">Anual</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Fecha de Inicio *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="fechaInicio"
+                                        value={formPoliza.fechaInicio}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Fecha de Vencimiento *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="fechaVencimiento"
+                                        value={formPoliza.fechaVencimiento}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Monto Asegurado (S/) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="montoAsegurado"
+                                        value={formPoliza.montoAsegurado}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        placeholder="50000"
+                                        step="0.01"
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Prima Mensual (S/) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="primaMensual"
+                                        value={formPoliza.primaMensual}
+                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                        placeholder="150.00"
+                                        step="0.01"
+                                        min="0"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPolizaModal(false);
+                                        limpiarFormularioPoliza();
+                                    }}
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                                >
+                                    {selectedPoliza ? 'Actualizar' : 'Crear'} Póliza
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL NUEVO TRÁMITE */}
             {showTramiteModal && (

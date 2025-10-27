@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axiosInstance from '../../config/axiosConfig';
 
-const API_URL = "http://localhost:8090/api/chatbot";
+const API_URL = "/chatbot";
 
 const ChatBotService = {
     // Enviar mensaje al chatbot
     enviarMensaje(mensaje, idUsuario) {
-        return axios.post(`${API_URL}/mensaje`, {
+        return axiosInstance.post(`${API_URL}/mensaje`, {
             mensaje,
             idUsuario
         });
@@ -13,7 +13,7 @@ const ChatBotService = {
 
     // Solicitar contacto con asesor
     solicitarAsesor(idUsuario, motivo) {
-        return axios.post(`${API_URL}/solicitar-asesor`, {
+        return axiosInstance.post(`${API_URL}/solicitar-asesor`, {
             idUsuario,
             motivo
         });

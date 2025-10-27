@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import authService from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -13,28 +14,41 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [token, setToken] = useState(null);
 
-    // Cargar usuario del localStorage al iniciar
+    // Cargar usuario y token del localStorage al iniciar
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-            const userData = JSON.parse(savedUser);
-            setUser(userData);
+        const savedToken = authService.getToken();
+        const savedUser = authService.getCurrentUser();
+        
+        if (savedToken && savedUser) {
+            setToken(savedToken);
+            setUser(savedUser);
             setIsAuthenticated(true);
         }
     }, []);
 
-    const login = (userData) => {
-        setUser(userData);
+    const login = (loginData) => {
+        // loginData contiene: { token, usuario, mensaje }
+        setToken(loginData.token);
+        setUser(loginData.usuario);
         setIsAuthenticated(true);
-        // Guardar en localStorage para persistencia
-        localStorage.setItem('user', JSON.stringify(userData));
+        // El token ya se guarda en authService.login()
     };
 
     const logout = () => {
+        authService.logout();
         setUser(null);
+        setToken(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('user');
+    };
+
+     // Actualizar información del usuario en el contexto
+    const updateUser = (updatedUserData) => {
+        // Actualizar el usuario en el estado
+        setUser(updatedUserData);
+        // Actualizar también en localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
     };
 
     // Verificar si el usuario es administrador
@@ -49,11 +63,13 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        token,
         isAuthenticated,
         isAdmin,
         isRegularUser,
         login,
-        logout
+        logout,
+        updateUser
     };
 
     return (

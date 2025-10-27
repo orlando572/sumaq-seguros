@@ -35,7 +35,6 @@ const DashboardPage = () => {
         setLoading(true);
         try {
             const response = await DashboardService.obtenerResumenCompleto(user.idUsuario);
-            console.log('Datos del dashboard:', response.data); // Debug
             setResumen(response.data);
         } catch (error) {
             console.error("Error al cargar datos del dashboard:", error);
@@ -161,13 +160,9 @@ const DashboardPage = () => {
                         <div>
                             <h1 className="text-3xl font-bold">¡Hola, {infoPersonal.nombre.split(' ')[0]}!</h1>
                             <p className="text-emerald-100 mt-1">
-                                Bienvenido a tu panel financiero
+                                Bienvenido a SumaqSeguros
                             </p>
                         </div>
-                    </div>
-                    <div className="text-right hidden md:block">
-                        <p className="text-emerald-100 text-sm">DNI</p>
-                        <p className="text-xl font-semibold">{infoPersonal.dni}</p>
                     </div>
                 </div>
             </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, UserPlus, X, Layers, LogIn, IdCard } from 'lucide-react';
 import UsuarioService from '../../service/user/UsuarioService';
+import authService from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
@@ -22,18 +23,24 @@ export default function Login() {
         setLoginData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleLoginSubmit = (e) => {
+    const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        UsuarioService.login(loginData.dni, loginData.claveSol)
-            .then(response => {
-                const userData = response.data;
-                login(userData); // Guarda el usuario en el contexto
+        try {
+            // Usar authService que maneja JWT
+            const response = await authService.login(loginData.dni, loginData.claveSol);
+            // response contiene: { token, usuario, mensaje }
+            login(response); // Guarda token y usuario en el contexto
+            
+            // Redirigir según rol
+            if (response.usuario.rol.idRol === 1) {
+                navigate('/admin/usuarios');
+            } else {
                 navigate('/dashboard');
-            })
-            .catch(error => {
-                console.error("Error al iniciar sesión:", error);
-                alert("Credenciales incorrectas o error en el servidor");
-            });
+            }
+        } catch (error) {
+            console.error("Error al iniciar sesión:", error);
+            alert(error.mensaje || "Credenciales incorrectas o error en el servidor");
+        }
     };
 
     const handleInputChange = (e) => {

@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axiosInstance from '../../config/axiosConfig';
 
-const API_URL = "http://localhost:8090/api/admin/usuarios";
+const API_URL = "/admin/usuarios";
 
 const AdminUsuarioService = {
     // Listar todos los usuarios
@@ -15,37 +15,37 @@ const AdminUsuarioService = {
             url += '?' + params.join('&');
         }
         
-        return axios.get(url);
+        return axiosInstance.get(url);
     },
 
     // Obtener usuario por ID
     obtenerUsuarioPorId(id) {
-        return axios.get(`${API_URL}/${id}`);
+        return axiosInstance.get(`${API_URL}/${id}`);
     },
 
     // Crear usuario
     crearUsuario(usuario) {
-        return axios.post(API_URL, usuario);
+        return axiosInstance.post(API_URL, usuario);
     },
 
     // Actualizar usuario
     actualizarUsuario(id, usuario) {
-        return axios.put(`${API_URL}/${id}`, usuario);
+        return axiosInstance.put(`${API_URL}/${id}`, usuario);
     },
 
     // Eliminar usuario
     eliminarUsuario(id) {
-        return axios.delete(`${API_URL}/${id}`);
+        return axiosInstance.delete(`${API_URL}/${id}`);
     },
 
     // Cambiar estado
     cambiarEstado(id, estado) {
-        return axios.patch(`${API_URL}/${id}/estado`, { estado });
+        return axiosInstance.patch(`${API_URL}/${id}/estado`, { estado });
     },
 
     // Obtener estadísticas
     obtenerEstadisticas() {
-        return axios.get(`${API_URL}/estadisticas`);
+        return axiosInstance.get(`${API_URL}/estadisticas`);
     }
 };
 
