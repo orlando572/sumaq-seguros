@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
     TrendingUp, 
@@ -16,12 +17,14 @@ import {
     FileText,
     AlertCircle,
     PieChart,
-    BarChart3
+    BarChart3,
+    MessageSquare
 } from 'lucide-react';
 import DashboardService from '../../service/user/DashboardService';
 
 const DashboardPage = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [resumen, setResumen] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -160,7 +163,7 @@ const DashboardPage = () => {
                         <div>
                             <h1 className="text-3xl font-bold">¡Hola, {infoPersonal.nombre.split(' ')[0]}!</h1>
                             <p className="text-emerald-100 mt-1">
-                                Bienvenido a SumaqSeguros
+                                Bienvenido a tu SumaqSeguros
                             </p>
                         </div>
                     </div>
@@ -193,11 +196,6 @@ const DashboardPage = () => {
                                             <p className="text-sm">
                                                 {alerta.mensaje}
                                             </p>
-                                            {alerta.monto && (
-                                                <p className="text-sm font-bold mt-2">
-                                                    Total: {formatCurrency(alerta.monto)}
-                                                </p>
-                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -397,21 +395,33 @@ const DashboardPage = () => {
                     Accesos Rápidos
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <button className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all group">
-                        <CreditCard className="w-8 h-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
-                        <p className="text-sm font-medium text-gray-900">Ver Aportes</p>
+                    <button 
+                        onClick={() => navigate('/pensiones')}
+                        className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all group"
+                    >
+                        <Users className="w-8 h-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-sm font-medium text-gray-900">Gestión de Pensiones</p>
                     </button>
-                    <button className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all group">
+                    <button 
+                        onClick={() => navigate('/seguros')}
+                        className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all group"
+                    >
                         <Shield className="w-8 h-8 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
-                        <p className="text-sm font-medium text-gray-900">Mis Seguros</p>
+                        <p className="text-sm font-medium text-gray-900">Gestión de Seguros</p>
                     </button>
-                    <button className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all group">
-                        <FileText className="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
-                        <p className="text-sm font-medium text-gray-900">Trámites</p>
-                    </button>
-                    <button className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg hover:from-orange-100 hover:to-orange-200 transition-all group">
-                        <PieChart className="w-8 h-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+                    <button 
+                        onClick={() => navigate('/comparador')}
+                        className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all group"
+                    >
+                        <BarChart3 className="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
                         <p className="text-sm font-medium text-gray-900">Comparador</p>
+                    </button>
+                    <button 
+                        onClick={() => navigate('/asistencia')}
+                        className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg hover:from-orange-100 hover:to-orange-200 transition-all group"
+                    >
+                        <MessageSquare className="w-8 h-8 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-sm font-medium text-gray-900">Asistencia Virtual</p>
                     </button>
                 </div>
             </div>

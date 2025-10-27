@@ -15,7 +15,7 @@ export default function Login() {
         estadoCivil: '', correo: '', telefono: '', direccion: '', distrito: '',
         provincia: '', departamento: '', claveSol: '', centroTrabajo: '',
         fechaIngresoTrabajo: '', tipoContrato: '', tipoRegimen: '',
-        fechaAfiliacion: '', notificacionesEmail: false, notificacionesSms: false,
+        fechaAfiliacion: '', idAfp: '', notificacionesEmail: false, notificacionesSms: false,
     });
 
     const handleLoginInputChange = (e) => {
@@ -45,15 +45,34 @@ export default function Login() {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prevState => ({
-            ...prevState,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        setFormData(prevState => {
+            const newState = {
+                ...prevState,
+                [name]: type === 'checkbox' ? checked : value
+            };
+            
+            // Si cambia el régimen a ONP, limpiar el campo AFP
+            if (name === 'tipoRegimen' && value === 'ONP') {
+                newState.idAfp = '';
+            }
+            
+            return newState;
+        });
     };
 
     const handleRegister = (e) => {
         e.preventDefault();
-        UsuarioService.registrarUsuario(formData)
+        
+        // Transformar datos para enviar al backend
+        const usuarioData = {
+            ...formData,
+            afp: (formData.idAfp && formData.idAfp !== '') ? { idAfp: parseInt(formData.idAfp) } : null
+        };
+        
+        // Eliminar idAfp del objeto ya que ahora usamos afp
+        delete usuarioData.idAfp;
+        
+        UsuarioService.registrarUsuario(usuarioData)
             .then(response => {
                 alert(response.data.mensaje || 'Registro exitoso');
                 setIsModalOpen(false);
@@ -151,23 +170,26 @@ export default function Login() {
                             <div><label className="block text-sm font-medium text-gray-700">Género</label><select name="genero" value={formData.genero} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="">Seleccionar</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
                             <div><label className="block text-sm font-medium text-gray-700">Estado Civil</label><select name="estadoCivil" value={formData.estadoCivil} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="">Seleccionar</option><option value="Soltero">Soltero</option><option value="Casado">Casado</option><option value="Divorciado">Divorciado</option><option value="Viudo">Viudo</option></select></div>
                             <div><label className="block text-sm font-medium text-gray-700">Tipo Contrato</label><select name="tipoContrato" value={formData.tipoContrato} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="">Seleccionar</option><option value="Dependiente">Dependiente</option><option value="Independiente">Independiente</option></select></div>
-                            <div><label className="block text-sm font-medium text-gray-700">Tipo Régimen</label><select name="tipoRegimen" value={formData.tipoRegimen} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="">Seleccionar</option><option value="ONP">ONP</option><option value="SPP">AFP</option></select></div>
-                             <div>
-                                <label className="block text-sm font-medium text-gray-700">AFP</label>
-                                <select
-                                    name="idAfp"
-                                    value={formData.idAfp || ''}
-                                    onChange={handleInputChange}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
-                                    required
-                                >
-                                    <option value="">Seleccionar AFP</option>
-                                    <option value="1">AFP Integra</option>
-                                    <option value="2">AFP Prima</option>
-                                    <option value="3">AFP Habitat</option>
-                                    <option value="4">AFP Profuturo</option>
-                                </select>
-                            </div>
+                            <div><label className="block text-sm font-medium text-gray-700">Tipo Régimen</label><select name="tipoRegimen" value={formData.tipoRegimen} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><option value="">Seleccionar</option><option value="ONP">ONP</option><option value="SPP">AFP (SPP)</option></select></div>
+                            {/* Solo mostrar AFP si el régimen es SPP */}
+                            {formData.tipoRegimen === 'SPP' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">AFP</label>
+                                    <select
+                                        name="idAfp"
+                                        value={formData.idAfp || ''}
+                                        onChange={handleInputChange}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                                        required
+                                    >
+                                        <option value="">Seleccionar AFP</option>
+                                        <option value="1">AFP Integra</option>
+                                        <option value="2">AFP Prima</option>
+                                        <option value="3">AFP Habitat</option>
+                                        <option value="4">AFP Profuturo</option>
+                                    </select>
+                                </div>
+                            )}
                             <div className="md:col-span-2 flex items-center space-x-4 mt-2">
                                 <label className="flex items-center"><input type="checkbox" name="notificacionesEmail" checked={formData.notificacionesEmail} onChange={handleInputChange} className="h-4 w-4" /> <span className="ml-2 text-sm">Acepto notificaciones por Email</span></label>
                                 <label className="flex items-center"><input type="checkbox" name="notificacionesSms" checked={formData.notificacionesSms} onChange={handleInputChange} className="h-4 w-4" /> <span className="ml-2 text-sm">Acepto notificaciones por SMS</span></label>

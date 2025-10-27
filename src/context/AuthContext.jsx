@@ -43,14 +43,6 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
     };
 
-     // Actualizar información del usuario en el contexto
-    const updateUser = (updatedUserData) => {
-        // Actualizar el usuario en el estado
-        setUser(updatedUserData);
-        // Actualizar también en localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUserData));
-    };
-
     // Verificar si el usuario es administrador
     const isAdmin = () => {
         return user?.rol?.idRol === 1; // ID 1 para Administrador
@@ -68,8 +60,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         isRegularUser,
         login,
-        logout,
-        updateUser
+        logout
     };
 
     return (

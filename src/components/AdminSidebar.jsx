@@ -3,8 +3,11 @@ import {
     LayoutDashboard, 
     Users, 
     Building2,
+    DollarSign,
+    Shield,
     LogOut,
-    ArrowLeftRight
+    ArrowLeftRight,
+    BarChart3
 } from "lucide-react";
 import SidebarHeader from './SidebarHeader';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +28,10 @@ const AdminSidebar = () => {
     const menuItems = [
         { path: "/admin/usuarios", icon: Users, label: "Gestión de Usuarios" },
         { path: "/admin/afps", icon: Building2, label: "Gestión de AFPs" },
+        { path: "/admin/aportes", icon: DollarSign, label: "Gestión de Aportes" },
+        { path: "/admin/seguros", icon: Shield, label: "Gestión de Seguros" },
+        { path: "/admin/planes-seguro", icon: BarChart3, label: "Planes del Comparador" },
+        { path: "/admin/companias-seguro", icon: Building2, label: "Compañías de Seguros" },
     ];
 
     return (
