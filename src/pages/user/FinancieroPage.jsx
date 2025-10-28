@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Download, TrendingUp, DollarSign, PieChart } from 'lucide-react';
+import { Download, TrendingUp, DollarSign, PieChart, Loader2, FileDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import FinancieroService from '../../service/user/FinancieroService';
+import PdfExportService from '../../service/user/PdfExportService';
 
 export default function FinancieroPage() {
     const { user } = useAuth();
@@ -13,12 +14,26 @@ export default function FinancieroPage() {
     const [sistema, setSistema] = useState("");
     const [generado, setGenerado] = useState(false);
     const [loading, setLoading] = useState(false);
+    
+    // Estados para exportación PDF
+    const [exportando, setExportando] = useState(false);
+    const [mensajeExportacion, setMensajeExportacion] = useState({ tipo: '', texto: '' });
 
     useEffect(() => {
         if (user?.idUsuario) {
             cargarDatos();
         }
     }, [user]);
+
+    // Limpiar mensajes después de 3 segundos
+    useEffect(() => {
+        if (mensajeExportacion.texto) {
+            const timer = setTimeout(() => {
+                setMensajeExportacion({ tipo: '', texto: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [mensajeExportacion]);
 
     const cargarDatos = async () => {
         setLoading(true);
@@ -72,6 +87,43 @@ export default function FinancieroPage() {
         return aportes;
     };
 
+    /**
+     * Función para exportar a PDF
+     */
+    const handleExportarPDF = async () => {
+        if (!user?.idUsuario) {
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Usuario no identificado'
+            });
+            return;
+        }
+
+        setExportando(true);
+        setMensajeExportacion({ tipo: '', texto: '' });
+
+        try {
+            // Descargar PDF
+            await PdfExportService.descargarPanelFinanciero(user.idUsuario);
+            
+            // Mensaje de éxito
+            setMensajeExportacion({
+                tipo: 'success',
+                texto: '¡PDF descargado exitosamente!'
+            });
+        } catch (error) {
+            console.error("Error al exportar PDF:", error);
+            
+            // Mensaje de error
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Error al generar el PDF. Por favor, intenta nuevamente.'
+            });
+        } finally {
+            setExportando(false);
+        }
+    };
+
     const aportesFiltr = filtrarAportes();
     const totalAportesActual = aportesFiltr.reduce((sum, a) => sum + (a.montoAporte || 0), 0);
 
@@ -84,13 +136,60 @@ export default function FinancieroPage() {
     };
 
     if (loading) {
-        return <div className="text-center p-8">Cargando datos...</div>;
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Cargando datos...</p>
+                </div>
+            </div>
+        );
     }
-
-
+    
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-gray-800">Panel Financiero</h1>
+            {/* Mensajes de exportación */}
+            {mensajeExportacion.texto && (
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+                    mensajeExportacion.tipo === 'success' 
+                        ? 'bg-green-100 border-green-400 text-green-700' 
+                        : 'bg-red-100 border-red-400 text-red-700'
+                }`}>
+                    {mensajeExportacion.tipo === 'success' ? (
+                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                    ) : (
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    )}
+                    <span>{mensajeExportacion.texto}</span>
+                </div>
+            )}
+
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-gray-800">Panel Financiero</h1>
+                
+                {/* Botón de Exportar PDF */}
+                <button
+                    onClick={handleExportarPDF}
+                    disabled={exportando}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        exportando
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-teal-600 hover:bg-teal-700 text-white'
+                    }`}
+                >
+                    {exportando ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Generando PDF...</span>
+                        </>
+                    ) : (
+                        <>
+                            <FileDown className="w-4 h-4" />
+                            <span>Exportar a PDF</span>
+                        </>
+                    )}
+                </button>
+            </div>
 
             {/* RESUMEN DE ESTADO */}
             {resumen && (
@@ -220,9 +319,22 @@ export default function FinancieroPage() {
                     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-semibold text-gray-800">Aportes realizados</h3>
-                            <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-                                <Download className="w-4 h-4" />
-                                Exportar
+                            <button 
+                                onClick={handleExportarPDF}
+                                disabled={exportando}
+                                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {exportando ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Exportando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-4 h-4" />
+                                        Exportar
+                                    </>
+                                )}
                             </button>
                         </div>
 

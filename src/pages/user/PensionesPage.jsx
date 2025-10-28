@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+
+import { Download, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Clock, Loader2, FileDown } from 'lucide-react';
 import { Download, Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import PensionesService from '../../service/user/PensionesService';
+import PdfExportService from '../../service/user/PdfExportService';
 
 export default function PensionesPage() {
     const { user } = useAuth();
@@ -13,6 +17,10 @@ export default function PensionesPage() {
     const [showForm, setShowForm] = useState(null);
     const [selectedAporte, setSelectedAporte] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
+    
+    // Estados para exportación PDF
+    const [exportando, setExportando] = useState(false);
+    const [mensajeExportacion, setMensajeExportacion] = useState({ tipo: '', texto: '' });
 
     const [formData, setFormData] = useState({
         periodo: '',
@@ -42,6 +50,16 @@ export default function PensionesPage() {
         }
     }, [successMessage]);
 
+    // Limpiar mensajes de exportación
+    useEffect(() => {
+        if (mensajeExportacion.texto) {
+            const timer = setTimeout(() => {
+                setMensajeExportacion({ tipo: '', texto: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [mensajeExportacion]);
+
     const cargarDatos = async () => {
         setLoading(true);
         try {
@@ -56,12 +74,53 @@ export default function PensionesPage() {
             setAportes(aportesRes.data || []);
             setSaldos(saldosRes.data || []);
             setEstado(estadoRes.data);
+/**
+     * CONFLICTO
+*/
+            setTramites([
+                { id: 1, tipo: "Apelación", detalle: "Revisión cálculo ONP", estado: "En proceso", fecha: "02/08/2025" },
+                { id: 2, tipo: "Bono", detalle: "Programa especial AFP", estado: "Aprobado", fecha: "28/07/2025" },
+            ]);
 
         } catch (error) {
             console.error("Error al cargar datos:", error);
             alert("Error al cargar los datos");
         }
         setLoading(false);
+    };
+
+    /**
+     * Función para exportar Gestión de Pensiones a PDF
+     */
+    const handleExportarPDF = async () => {
+        if (!user?.idUsuario) {
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Usuario no identificado'
+            });
+            return;
+        }
+
+        setExportando(true);
+        setMensajeExportacion({ tipo: '', texto: '' });
+
+        try {
+            await PdfExportService.descargarGestionPensiones(user.idUsuario);
+            
+            setMensajeExportacion({
+                tipo: 'success',
+                texto: '¡PDF de Gestión de Pensiones descargado exitosamente!'
+            });
+        } catch (error) {
+            console.error("Error al exportar PDF:", error);
+            
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Error al generar el PDF. Por favor, intenta nuevamente.'
+            });
+        } finally {
+            setExportando(false);
+        }
     };
 
     const handleFormChange = (e) => {
@@ -203,45 +262,86 @@ export default function PensionesPage() {
                 </div>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-800">Gestión de Pensiones</h1>
+            {/* Mensajes de exportación */}
+            {mensajeExportacion.texto && (
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+                    mensajeExportacion.tipo === 'success' 
+                        ? 'bg-green-100 border-green-400 text-green-700' 
+                        : 'bg-red-100 border-red-400 text-red-700'
+                }`}>
+                    {mensajeExportacion.tipo === 'success' ? (
+                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                    ) : (
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    )}
+                    <span>{mensajeExportacion.texto}</span>
+                </div>
+            )}
 
-           {/* RESUMEN ADMINISTRATIVO */}
-{resumen && (
-    <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">Resumen administrativo</h2>
-            <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
-                ⚡ Datos actualizados
-            </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Estado AFP</p>
-                <p className="text-2xl font-bold text-blue-900">{resumen.estadoAFP}</p>
-                <p className="text-gray-500 text-xs">Integra</p>
+            {/* Header con botón de exportar */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-gray-800">Gestión de Pensiones</h1>
+                
+                <button
+                    onClick={handleExportarPDF}
+                    disabled={exportando}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        exportando
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-teal-600 hover:bg-teal-700 text-white'
+                    }`}
+                >
+                    {exportando ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Generando PDF...</span>
+                        </>
+                    ) : (
+                        <>
+                            <FileDown className="w-4 h-4" />
+                            <span>Exportar a PDF</span>
+                        </>
+                    )}
+                </button>
             </div>
 
-            <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Estado ONP</p>
-                <p className="text-2xl font-bold text-green-900">{resumen.estadoONP}</p>
-                <p className="text-gray-500 text-xs">Último aporte: 06/2024</p>
-            </div>
+            {/* RESUMEN ADMINISTRATIVO */}
+            {resumen && (
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-semibold text-gray-800">Resumen administrativo</h2>
+                        <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
+                            ⚡ Datos actualizados
+                        </span>
+                    </div>
 
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Años aportados</p>
-                <p className="text-2xl font-bold text-purple-900">{resumen.años || 0}</p>
-                <p className="text-gray-500 text-xs">ONP + AFP</p>
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                            <p className="text-gray-600 text-sm mb-1">Estado AFP</p>
+                            <p className="text-2xl font-bold text-blue-900">{resumen.estadoAFP}</p>
+                            <p className="text-gray-500 text-xs">Integra</p>
+                        </div>
 
-            <div className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg">
-                <p className="text-gray-600 text-sm mb-1">Saldo disponible</p>
-                <p className="text-2xl font-bold text-teal-900">{formatCurrency(resumen.saldoDisponible)}</p>
-                <p className="text-gray-500 text-xs">Disponible para retiro</p>
-            </div>
-        </div>
-    </div>
-)}
+                        <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                            <p className="text-gray-600 text-sm mb-1">Estado ONP</p>
+                            <p className="text-2xl font-bold text-green-900">{resumen.estadoONP}</p>
+                            <p className="text-gray-500 text-xs">Último aporte: 06/2024</p>
+                        </div>
+
+                        <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                            <p className="text-gray-600 text-sm mb-1">Años aportados</p>
+                            <p className="text-2xl font-bold text-purple-900">{resumen.años || 0}</p>
+                            <p className="text-gray-500 text-xs">ONP + AFP</p>
+                        </div>
+
+                        <div className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg">
+                            <p className="text-gray-600 text-sm mb-1">Saldo disponible</p>
+                            <p className="text-2xl font-bold text-teal-900">{formatCurrency(resumen.saldoDisponible)}</p>
+                            <p className="text-gray-500 text-xs">Disponible para retiro</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* APORTES */}
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
@@ -258,8 +358,22 @@ export default function PensionesPage() {
                         >
                             <Plus className="w-4 h-4" /> Nuevo aporte
                         </button>
-                        <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                            <Download className="w-4 h-4" /> Exportar
+                        <button 
+                            onClick={handleExportarPDF}
+                            disabled={exportando}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            {exportando ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Exportando...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4" />
+                                    Exportar
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
