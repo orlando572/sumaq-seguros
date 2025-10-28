@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Car, Home, Heart, Shield, CheckSquare, FileText, TrendingUp, DollarSign, Info, X } from "lucide-react";
+import { Car, Home, Heart, Shield, CheckSquare, FileText, TrendingUp, DollarSign, Info, X, Mail, Send } from "lucide-react";
 import ComparadorService from "../../service/user/ComparadorService";
+import CotizacionService from "../../service/user/CotizacionService";
 
 const ComparadorPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("Vehicular");
@@ -11,6 +12,9 @@ const ComparadorPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [planDetalle, setPlanDetalle] = useState(null);
   const [estadisticas, setEstadisticas] = useState(null);
+  const [showCotizacionModal, setShowCotizacionModal] = useState(false);
+  const [comentariosCotizacion, setComentariosCotizacion] = useState("");
+  const [enviandoCotizacion, setEnviandoCotizacion] = useState(false);
 
   const categoryIcons = {
     "Vehicular": Car,
@@ -95,16 +99,54 @@ const ComparadorPage = () => {
     return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value || 0);
   };
 
-  const parseCoberturas = (coberturasJson) => {
-    try {
-      return JSON.parse(coberturasJson);
-    } catch {
-      return [];
+  const solicitarCotizacion = async () => {
+    if (selectedPlans.length === 0) {
+      alert("Debe seleccionar al menos un plan para cotizar");
+      return;
     }
+
+    const usuario = JSON.parse(localStorage.getItem('user'));
+    if (!usuario || !usuario.idUsuario) {
+      alert("Debe iniciar sesión para solicitar una cotización");
+      return;
+    }
+
+    setEnviandoCotizacion(true);
+    try {
+      const idsPlanes = selectedPlans.map(p => p.idSeguro);
+      const response = await CotizacionService.solicitarCotizacion(
+        usuario.idUsuario,
+        idsPlanes,
+        comentariosCotizacion
+      );
+
+      if (response.data.exitoso) {
+        alert(`✅ ${response.data.mensaje}\n\nLa cotización ha sido enviada a: ${response.data.correo}`);
+        setShowCotizacionModal(false);
+        setComentariosCotizacion("");
+      } else {
+        alert(`❌ ${response.data.mensaje}`);
+      }
+    } catch (error) {
+      console.error("Error al solicitar cotización:", error);
+      alert("Error al solicitar la cotización. Por favor, intente nuevamente.");
+    } finally {
+      setEnviandoCotizacion(false);
+    }
+  };
+
+  const parseCoberturas = (coberturaPrincipal) => {
+    if (!coberturaPrincipal || typeof coberturaPrincipal !== 'string') return [];
+    // Dividir por comas o "y" para obtener las coberturas individuales
+    return coberturaPrincipal
+      .split(/,\s*|\s+y\s+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
   };
 
   // Agrupar seguros por compañía
   const segurosPorCompania = seguros.reduce((acc, seguro) => {
+    if (!seguro || !seguro.compania || !seguro.compania.nombre) return acc;
     const compania = seguro.compania.nombre;
     if (!acc[compania]) {
       acc[compania] = [];
@@ -192,17 +234,26 @@ const ComparadorPage = () => {
       )}
 
       {/* Grid de seguros por compañía */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(segurosPorCompania).map(([compania, planes]) => (
+      {Object.keys(segurosPorCompania).length === 0 ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+          <Shield className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No hay planes disponibles</h3>
+          <p className="text-gray-600">No se encontraron planes de seguro en la categoría "{selectedCategory}".</p>
+          <p className="text-sm text-gray-500 mt-2">Por favor, seleccione otra categoría o intente más tarde.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Object.entries(segurosPorCompania).map(([compania, planes]) => (
           <div key={compania} className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-200">
               {compania}
             </h3>
             <div className="space-y-4">
               {planes.map((plan) => {
+                if (!plan || !plan.tipoSeguro || !plan.compania) return null;
                 const Icon = categoryIcons[selectedCategory];
                 const isSelected = selectedPlans.some((p) => p.idSeguro === plan.idSeguro);
-                const coberturas = parseCoberturas(plan.coberturas);
+                const coberturas = parseCoberturas(plan.tipoSeguro.coberturaPrincipal);
 
                 return (
                   <div
@@ -242,23 +293,25 @@ const ComparadorPage = () => {
                       )}
                     </div>
 
-                    {/* Coberturas principales */}
-                    <div className="mb-4">
-                      <p className="text-xs font-medium text-gray-600 mb-2">Coberturas principales:</p>
-                      <div className="space-y-1">
-                        {coberturas.slice(0, 3).map((cobertura, idx) => (
-                          <div key={idx} className="flex items-start gap-1">
-                            <CheckSquare className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-xs text-gray-700">{cobertura}</span>
-                          </div>
-                        ))}
-                        {coberturas.length > 3 && (
-                          <p className="text-xs text-blue-600 font-medium">
-                            +{coberturas.length - 3} coberturas más
-                          </p>
-                        )}
+                    {/* Coberturas principales - Solo mostrar si hay coberturas */}
+                    {coberturas.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs font-medium text-gray-600 mb-2">Coberturas principales:</p>
+                        <div className="space-y-1">
+                          {coberturas.slice(0, 3).map((cobertura, idx) => (
+                            <div key={idx} className="flex items-start gap-1">
+                              <CheckSquare className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs text-gray-700">{cobertura}</span>
+                            </div>
+                          ))}
+                          {coberturas.length > 3 && (
+                            <p className="text-xs text-blue-600 font-medium">
+                              +{coberturas.length - 3} coberturas más
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex gap-2">
                       <button
@@ -286,13 +339,14 @@ const ComparadorPage = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Tabla comparativa */}
       {comparacion && selectedPlans.length >= 2 && (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-800">Comparativa de Planes</h3>
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Comparativa de Planes</h3>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
@@ -381,29 +435,42 @@ const ComparadorPage = () => {
                     </td>
                   ))}
                 </tr>
-                <tr className="bg-white">
-                  <td className="p-3 font-medium text-gray-700 align-top">Coberturas</td>
-                  {selectedPlans.map((plan) => {
-                    const coberturas = parseCoberturas(plan.coberturas);
-                    return (
-                      <td key={plan.idSeguro} className="p-3">
-                        <ul className="space-y-1">
-                          {coberturas.map((cob, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                              <CheckSquare className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span>{cob}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                    );
-                  })}
-                </tr>
+                {/* Solo mostrar fila de coberturas si al menos un plan tiene coberturas */}
+                {selectedPlans.some(plan => parseCoberturas(plan.coberturas).length > 0) && (
+                  <tr className="bg-white">
+                    <td className="p-3 font-medium text-gray-700 align-top">Coberturas</td>
+                    {selectedPlans.map((plan) => {
+                      const coberturas = parseCoberturas(plan.coberturas);
+                      return (
+                        <td key={plan.idSeguro} className="p-3">
+                          {coberturas.length > 0 ? (
+                            <ul className="space-y-1">
+                              {coberturas.map((cob, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <CheckSquare className="w-3 h-3 text-green-600 mt-0.5 flex-shrink-0" />
+                                  <span>{cob}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Sin información</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
                 <tr className="bg-emerald-50">
                   <td className="p-3 font-medium text-gray-700">Acción</td>
                   {selectedPlans.map((plan) => (
                     <td key={plan.idSeguro} className="p-3">
-                      <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+                      <button 
+                        onClick={() => {
+                          setSelectedPlans([plan]);
+                          setShowCotizacionModal(true);
+                        }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                      >
                         <FileText className="w-4 h-4" />
                         Cotizar
                       </button>
@@ -416,101 +483,80 @@ const ComparadorPage = () => {
         </div>
       )}
 
-      {/* Modal de detalle */}
-      {showModal && planDetalle && (
+      {/* Modal de Cotización */}
+      {showCotizacionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-start">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">{planDetalle.nombrePlan}</h2>
-                <p className="text-gray-600 mt-1">{planDetalle.compania}</p>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-indigo-600 text-white p-6 rounded-t-lg">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-6 h-6" />
+                  <h2 className="text-xl font-bold">Solicitar Cotización</h2>
+                </div>
+                <button
+                  onClick={() => setShowCotizacionModal(false)}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Información principal */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Prima Mensual</p>
-                  <p className="text-xl font-bold text-emerald-700">{formatCurrency(planDetalle.primaMensual)}</p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Prima Anual</p>
-                  <p className="text-xl font-bold text-blue-700">{formatCurrency(planDetalle.primaAnual)}</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Cobertura</p>
-                  <p className="text-xl font-bold text-purple-700">{formatCurrency(planDetalle.montoAsegurado)}</p>
-                </div>
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Descripción</h3>
-                <p className="text-gray-700">{planDetalle.descripcion}</p>
-              </div>
-
-              {/* Coberturas */}
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-3">Coberturas Incluidas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {parseCoberturas(planDetalle.coberturas).map((cob, idx) => (
-                    <div key={idx} className="flex items-start gap-2 p-2 bg-green-50 rounded">
-                      <CheckSquare className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">{cob}</span>
-                    </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900 font-medium mb-2">
+                  📧 Planes seleccionados: {selectedPlans.length}
+                </p>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  {selectedPlans.map((plan, idx) => (
+                    <li key={idx}>• {plan.tipoSeguro.nombre} - {plan.compania.nombre}</li>
                   ))}
-                </div>
+                </ul>
               </div>
 
-              {/* Exclusiones */}
-              {planDetalle.exclusiones && (
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-3">Exclusiones</h3>
-                  <div className="space-y-2">
-                    {parseCoberturas(planDetalle.exclusiones).map((exc, idx) => (
-                      <div key={idx} className="flex items-start gap-2 p-2 bg-red-50 rounded">
-                        <X className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{exc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comentarios adicionales (opcional)
+                </label>
+                <textarea
+                  value={comentariosCotizacion}
+                  onChange={(e) => setComentariosCotizacion(e.target.value)}
+                  placeholder="Ej: Necesito información sobre formas de pago, descuentos por familia, etc."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  rows="4"
+                />
+              </div>
 
-              {/* Información de contacto */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-3">Información de Contacto</h3>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Compañía:</span> {planDetalle.compania}</p>
-                  <p><span className="font-medium">Calificación:</span> {planDetalle.calificacion}</p>
-                  {planDetalle.contactoCompania && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-800">
+                  ℹ️ La cotización detallada será enviada a su correo electrónico registrado.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowCotizacionModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  disabled={enviandoCotizacion}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={solicitarCotizacion}
+                  disabled={enviandoCotizacion}
+                  className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {enviandoCotizacion ? (
                     <>
-                      <p><span className="font-medium">Teléfono:</span> {planDetalle.contactoCompania.telefono}</p>
-                      <p><span className="font-medium">Email:</span> {planDetalle.contactoCompania.email}</p>
-                      <p><span className="font-medium">Web:</span> {planDetalle.contactoCompania.web}</p>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Enviar Cotización
                     </>
                   )}
-                </div>
-              </div>
-
-              {/* Botones de acción */}
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                >
-                  Cerrar
-                </button>
-                <button className="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Solicitar Cotización
                 </button>
               </div>
             </div>

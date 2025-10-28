@@ -16,6 +16,11 @@ import PerfilPage from './pages/user/PerfilPage';
 
 import AdminUsuariosPage from './pages/admin/AdminUsuariosPage';
 import AdminAfpsPage from './pages/admin/AdminAfpsPage';
+import AdminAportesPage from './pages/admin/AdminAportesPage';
+import AdminSegurosPage from './pages/admin/AdminSegurosPage';
+import AdminPlanesSeguroPage from './pages/admin/AdminPlanesSeguroPage';
+import AdminCompaniasSeguroPage from './pages/admin/AdminCompaniasSeguroPage';
+
 
 // Componente para proteger rutas de administrador
 function AdminRoute({ children }) {
@@ -71,6 +76,11 @@ function AppRoutes() {
         <Route index element={<Navigate to="/admin/usuarios" />} />
         <Route path="usuarios" element={<AdminUsuariosPage />} />
         <Route path="afps" element={<AdminAfpsPage />} />
+        <Route path="aportes" element={<AdminAportesPage />} />
+        <Route path="seguros" element={<AdminSegurosPage />} />
+        <Route path="planes-seguro" element={<AdminPlanesSeguroPage />} />
+        <Route path="companias-seguro" element={<AdminCompaniasSeguroPage />} />
+
       </Route>
 
       {/* Ruta por defecto */}

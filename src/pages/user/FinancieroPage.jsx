@@ -64,8 +64,17 @@ export default function FinancieroPage() {
         }
     };
 
-    const handleGenerarVisualizacion = () => {
-        if (sistema) setGenerado(true);
+    const handleGenerarVisualizacion = async () => {
+        if (sistema) {
+            setGenerado(true);
+            // Registrar en historial cuando se genera la consulta
+            try {
+                await FinancieroService.obtenerComparativo(user.idUsuario);
+                console.log('Consulta registrada en historial');
+            } catch (error) {
+                console.error('Error al registrar consulta:', error);
+            }
+        }
     };
 
     const filtrarAportes = () => {
@@ -254,7 +263,7 @@ export default function FinancieroPage() {
                             <h3 className="font-semibold text-gray-800 mb-4">{sistema}</h3>
                             <p className="text-sm text-gray-500 mb-4">Últimos años</p>
                             <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-8 mb-4 h-48 flex items-end justify-around">
-                                {estadisticas?.aportesPorYear?.map((item, idx) => (
+                                {estadisticas?.aportesPorAnio?.map((item, idx) => (
                                     <div key={idx} className="flex flex-col items-center">
                                         <div
                                             className="bg-teal-600 rounded-t"
@@ -263,7 +272,7 @@ export default function FinancieroPage() {
                                                 height: Math.max(10, (item.total / 15000) * 150) + "px"
                                             }}
                                         />
-                                        <p className="text-xs text-gray-600 mt-2">{item.year}</p>
+                                        <p className="text-xs text-gray-600 mt-2">{item.anio}</p>
                                         <p className="text-xs font-semibold text-gray-800">{formatCurrency(item.total)}</p>
                                     </div>
                                 ))}

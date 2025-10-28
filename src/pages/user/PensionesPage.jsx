@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
+
 import { Download, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Clock, Loader2, FileDown } from 'lucide-react';
+import { Download, Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import PensionesService from '../../service/user/PensionesService';
 import PdfExportService from '../../service/user/PdfExportService';
@@ -10,7 +13,6 @@ export default function PensionesPage() {
     const [aportes, setAportes] = useState([]);
     const [saldos, setSaldos] = useState([]);
     const [estado, setEstado] = useState(null);
-    const [tramites, setTramites] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(null);
     const [selectedAporte, setSelectedAporte] = useState(null);
@@ -72,11 +74,14 @@ export default function PensionesPage() {
             setAportes(aportesRes.data || []);
             setSaldos(saldosRes.data || []);
             setEstado(estadoRes.data);
-
+/**
+     * CONFLICTO
+*/
             setTramites([
                 { id: 1, tipo: "Apelación", detalle: "Revisión cálculo ONP", estado: "En proceso", fecha: "02/08/2025" },
                 { id: 2, tipo: "Bono", detalle: "Programa especial AFP", estado: "Aprobado", fecha: "28/07/2025" },
             ]);
+
         } catch (error) {
             console.error("Error al cargar datos:", error);
             alert("Error al cargar los datos");
@@ -120,7 +125,16 @@ export default function PensionesPage() {
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const newFormData = { ...formData, [name]: value };
+        
+        // Auto-calcular monto total cuando cambian los aportes
+        if (name === 'aporteTrabajador' || name === 'aporteEmpleador') {
+            const trabajador = parseFloat(name === 'aporteTrabajador' ? value : newFormData.aporteTrabajador) || 0;
+            const empleador = parseFloat(name === 'aporteEmpleador' ? value : newFormData.aporteEmpleador) || 0;
+            newFormData.montoAporte = (trabajador + empleador).toFixed(2);
+        }
+        
+        setFormData(newFormData);
     };
 
     const limpiarFormulario = () => {
@@ -226,16 +240,6 @@ export default function PensionesPage() {
 
     const formatCurrency = (value) =>
         new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value || 0);
-
-    const getTramiteBadge = (estado) => {
-        const config = {
-            'Pendiente': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock },
-            'En proceso': { bg: 'bg-blue-100', text: 'text-blue-800', icon: Clock },
-            'Aprobado': { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle2 },
-            'Rechazado': { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle },
-        };
-        return config[estado] || config['Pendiente'];
-    };
 
     if (loading) {
         return (
@@ -437,32 +441,6 @@ export default function PensionesPage() {
                 </div>
             </div>
 
-            {/* TRÁMITES, APELACIONES Y BONOS */}
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-6">Trámites, apelaciones y bonos</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {tramites.map((tramite) => {
-                        const config = getTramiteBadge(tramite.estado);
-                        const IconComponent = config.icon;
-                        return (
-                            <div key={tramite.id} className={`${config.bg} ${config.text} p-4 rounded-lg border-l-4`}>
-                                <div className="flex items-start gap-3">
-                                    <IconComponent className="w-5 h-5 mt-1 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h4 className="font-semibold text-sm mb-1">{tramite.tipo}</h4>
-                                        <p className="text-sm mb-3">{tramite.detalle}</p>
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="font-medium">{tramite.estado}</span>
-                                            <span className="opacity-75">{tramite.fecha}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
             {/* MODAL FORMULARIO */}
             {showForm === 'aporte' && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -510,16 +488,16 @@ export default function PensionesPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Monto Total Aporte *
+                                        Monto Total Aporte * <span className="text-xs text-teal-600">(Auto-calculado)</span>
                                     </label>
                                     <input
                                         type="number"
                                         name="montoAporte"
                                         value={formData.montoAporte}
-                                        onChange={handleFormChange}
+                                        readOnly
                                         step="0.01"
-                                        placeholder="1200.00"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder="0.00"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed font-semibold text-teal-700"
                                         required
                                     />
                                 </div>

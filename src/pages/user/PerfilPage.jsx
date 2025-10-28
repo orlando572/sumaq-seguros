@@ -6,7 +6,7 @@ import UsuarioService from '../../service/user/UsuarioService';
 import ImageUploader from '../../components/ImageUploader';
 
 export default function PerfilPage() {
-    const { user, updateUser } = useAuth();
+    const { user, login } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');

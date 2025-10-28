@@ -82,10 +82,14 @@ export default function ChatBot() {
     };
 
     const suggestedQuestions = [
-        "¿Cuál es mi saldo actual?",
-        "¿Cómo registro un aporte?",
+        "¿Cuáles son mis datos personales?",
+        "¿Cuál es mi saldo y proyección?",
+        "¿Qué seguros ofrecen?",
         "Diferencia entre ONP y AFP",
-        "¿Qué seguros ofrecen?"
+        "¿Cuáles son mis pólizas activas?",
+        "¿Cómo registro un aporte?",
+        "¿Quiénes son mis beneficiarios?",
+        "¿Cómo usar el comparador?"
     ];
 
     return (

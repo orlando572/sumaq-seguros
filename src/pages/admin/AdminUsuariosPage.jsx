@@ -147,10 +147,19 @@ export default function AdminUsuariosPage() {
 
     const handleFormChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        setFormData(prev => {
+            const newState = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            };
+            
+            // Si cambia el régimen a ONP, limpiar el campo AFP
+            if (name === 'tipoRegimen' && value === 'ONP') {
+                newState.idAfp = '';
+            }
+            
+            return newState;
+        });
     };
 
     const handleGuardar = async (e) => {
@@ -165,7 +174,7 @@ export default function AdminUsuariosPage() {
             const usuarioData = {
                 ...formData,
                 rol: formData.idRol ? { idRol: parseInt(formData.idRol) } : null,
-                afp: formData.idAfp ? { idAfp: parseInt(formData.idAfp) } : null,
+                afp: (formData.idAfp && formData.idAfp !== '') ? { idAfp: parseInt(formData.idAfp) } : null,
                 salarioActual: formData.salarioActual ? parseFloat(formData.salarioActual) : null
             };
 
@@ -507,19 +516,34 @@ export default function AdminUsuariosPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">AFP</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo Régimen</label>
                                     <select
-                                        name="idAfp"
-                                        value={formData.idAfp}
+                                        name="tipoRegimen"
+                                        value={formData.tipoRegimen}
                                         onChange={handleFormChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                     >
-                                        <option value="">Seleccionar AFP</option>
-                                        {afps.map(afp => (
-                                            <option key={afp.idAfp} value={afp.idAfp}>{afp.nombre}</option>
-                                        ))}
+                                        <option value="">Seleccionar</option>
+                                        <option value="ONP">ONP</option>
+                                        <option value="SPP">AFP (SPP)</option>
                                     </select>
                                 </div>
+                                {formData.tipoRegimen === 'SPP' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">AFP</label>
+                                        <select
+                                            name="idAfp"
+                                            value={formData.idAfp}
+                                            onChange={handleFormChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            <option value="">Seleccionar AFP</option>
+                                            {afps.map(afp => (
+                                                <option key={afp.idAfp} value={afp.idAfp}>{afp.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Clave SOL</label>
                                     <input

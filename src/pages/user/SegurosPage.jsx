@@ -21,6 +21,8 @@ import { useAuth } from '../../context/AuthContext';
 import SegurosService from '../../service/user/SegurosService';
 import PdfExportService from '../../service/user/PdfExportService';
 
+import CatalogosService from '../../service/user/CatalogosService';
+
 export default function SegurosPage() {
     const { user } = useAuth();
     const [resumen, setResumen] = useState(null);
@@ -31,6 +33,10 @@ export default function SegurosPage() {
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    
+    // Catálogos
+    const [tiposSeguros, setTiposSeguros] = useState([]);
+    const [companias, setCompanias] = useState([]);
 
     // Estados para exportación PDF
     const [exportando, setExportando] = useState(false);
@@ -48,8 +54,11 @@ export default function SegurosPage() {
     const [showPolizaModal, setShowPolizaModal] = useState(false);
     const [showBeneficiarioModal, setShowBeneficiarioModal] = useState(false);
     const [showTramiteModal, setShowTramiteModal] = useState(false);
+    const [showPagoModal, setShowPagoModal] = useState(false);
     const [selectedPoliza, setSelectedPoliza] = useState(null);
     const [selectedBeneficiario, setSelectedBeneficiario] = useState(null);
+    const [selectedPago, setSelectedPago] = useState(null);
+    const [porcentajeDisponible, setPorcentajeDisponible] = useState(100);
 
     // Formularios
     const [formPoliza, setFormPoliza] = useState({
@@ -68,7 +77,9 @@ export default function SegurosPage() {
         parentesco: '',
         porcentaje: '',
         dni: '',
-        telefono: ''
+        telefono: '',
+        fechaNacimiento: '',
+        idSeguro: ''
     });
 
     const [formTramite, setFormTramite] = useState({
@@ -78,11 +89,33 @@ export default function SegurosPage() {
         idSeguro: ''
     });
 
+    const [formPago, setFormPago] = useState({
+        metodoPago: 'Tarjeta de crédito',
+        numeroTarjeta: '',
+        nombreTitular: '',
+        fechaExpiracion: '',
+        cvv: ''
+    });
+
     useEffect(() => {
         if (user?.idUsuario) {
             cargarDatos();
         }
+        cargarCatalogos();
     }, [user]);
+    
+    const cargarCatalogos = async () => {
+        try {
+            const [tiposRes, companiasRes] = await Promise.all([
+                CatalogosService.obtenerTiposSeguros(),
+                CatalogosService.obtenerCompanias()
+            ]);
+            setTiposSeguros(tiposRes.data);
+            setCompanias(companiasRes.data);
+        } catch (error) {
+            console.error("Error al cargar catálogos:", error);
+        }
+    };
 
     useEffect(() => {
         if (successMessage || errorMessage) {
@@ -190,9 +223,25 @@ export default function SegurosPage() {
         });
     };
 
+    const generarNumeroPoliza = () => {
+        const fecha = new Date();
+        const año = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        const hora = String(fecha.getHours()).padStart(2, '0');
+        const minuto = String(fecha.getMinutes()).padStart(2, '0');
+        const segundo = String(fecha.getSeconds()).padStart(2, '0');
+        return `POL-${año}${mes}${dia}-${hora}${minuto}${segundo}`;
+    };
+
     const handleNuevaPoliza = () => {
         setSelectedPoliza(null);
         limpiarFormularioPoliza();
+        // Generar número de póliza automáticamente
+        setFormPoliza(prev => ({
+            ...prev,
+            numeroPoliza: generarNumeroPoliza()
+        }));
         setShowPolizaModal(true);
     };
 
@@ -224,6 +273,160 @@ export default function SegurosPage() {
         }
     };
 
+    const handleGuardarPoliza = async (e) => {
+        e.preventDefault();
+        try {
+            const polizaData = {
+                usuario: { idUsuario: user.idUsuario },
+                tipoSeguro: { idTipoSeguro: parseInt(formPoliza.tipoSeguro) },
+                compania: { idCompania: parseInt(formPoliza.compania) },
+                numeroPoliza: formPoliza.numeroPoliza,
+                fechaInicio: formPoliza.fechaInicio,
+                fechaVencimiento: formPoliza.fechaVencimiento,
+                montoAsegurado: parseFloat(formPoliza.montoAsegurado),
+                primaMensual: parseFloat(formPoliza.primaMensual),
+                formaPago: formPoliza.formaPago,
+                estado: 'Vigente'
+            };
+
+            if (selectedPoliza) {
+                await SegurosService.actualizarPoliza(selectedPoliza.idSeguro, polizaData);
+                setSuccessMessage("Póliza actualizada exitosamente");
+            } else {
+                await SegurosService.crearPoliza(polizaData);
+                setSuccessMessage("Póliza creada exitosamente. Los pagos se generaron automáticamente.");
+            }
+
+            setShowPolizaModal(false);
+            limpiarFormularioPoliza();
+            await cargarDatos(); // Esperar a que se recarguen los datos
+        } catch (error) {
+            console.error("Error al guardar póliza:", error);
+            
+            // Mejorar el mensaje de error
+            let mensajeError = "Error al guardar la póliza";
+            
+            if (error.response?.data?.error) {
+                const errorMsg = error.response.data.error;
+                
+                // Detectar error de número de póliza duplicado
+                if (errorMsg.includes("duplicate key") || errorMsg.includes("numero_poliza")) {
+                    mensajeError = "El número de póliza ya existe. Por favor, usa otro número.";
+                } else {
+                    mensajeError = errorMsg;
+                }
+            } else if (error.response?.data?.mensaje) {
+                mensajeError = error.response.data.mensaje;
+            }
+            
+            setErrorMessage(mensajeError);
+        }
+    };
+
+    const handlePagar = (pago) => {
+        setSelectedPago(pago);
+        setFormPago({
+            metodoPago: 'Tarjeta de crédito',
+            numeroTarjeta: '',
+            nombreTitular: '',
+            fechaExpiracion: '',
+            cvv: ''
+        });
+        setShowPagoModal(true);
+    };
+
+    const handleProcesarPago = async (e) => {
+        e.preventDefault();
+        try {
+            const pagoData = {
+                idPago: selectedPago.idPago,
+                seguro: { idSeguro: selectedPago.seguro.idSeguro },
+                numeroCuota: selectedPago.numeroCuota,
+                montoPagado: selectedPago.montoCuota,
+                montoCuota: selectedPago.montoCuota,
+                fechaVencimiento: selectedPago.fechaVencimiento,
+                metodoPago: formPago.metodoPago,
+                fechaPago: new Date().toISOString(),
+                estado: 'Pagado'
+            };
+
+            await SegurosService.registrarPago(pagoData);
+            setSuccessMessage("Pago procesado exitosamente");
+            setShowPagoModal(false);
+            setFormPago({
+                metodoPago: 'Tarjeta de crédito',
+                numeroTarjeta: '',
+                nombreTitular: '',
+                fechaExpiracion: '',
+                cvv: ''
+            });
+            await cargarDatos();
+        } catch (error) {
+            console.error("Error al procesar pago:", error);
+            setErrorMessage(error.response?.data || "Error al procesar el pago");
+        }
+    };
+
+    const calcularPorcentajeDisponible = async (idSeguro) => {
+        try {
+            const response = await SegurosService.obtenerBeneficiarios(idSeguro);
+            const beneficiarios = response.data || [];
+            const totalUsado = beneficiarios.reduce((sum, b) => sum + (parseFloat(b.porcentaje) || 0), 0);
+            setPorcentajeDisponible(100 - totalUsado);
+        } catch (error) {
+            console.error("Error al calcular porcentaje:", error);
+            setPorcentajeDisponible(100);
+        }
+    };
+
+    const handleNuevoBeneficiario = async (poliza) => {
+        setSelectedPoliza(poliza);
+        await calcularPorcentajeDisponible(poliza.idSeguro);
+        setFormBeneficiario({
+            nombreCompleto: '',
+            parentesco: '',
+            porcentaje: '',
+            dni: '',
+            telefono: '',
+            fechaNacimiento: '',
+            idSeguro: poliza.idSeguro
+        });
+        setShowBeneficiarioModal(true);
+    };
+
+    const handleGuardarBeneficiario = async (e) => {
+        e.preventDefault();
+        try {
+            const beneficiarioData = {
+                seguro: { idSeguro: parseInt(formBeneficiario.idSeguro) },
+                nombreCompleto: formBeneficiario.nombreCompleto,
+                parentesco: formBeneficiario.parentesco,
+                porcentaje: parseFloat(formBeneficiario.porcentaje),
+                dni: formBeneficiario.dni || null,
+                fechaNacimiento: formBeneficiario.fechaNacimiento || null,
+                telefono: formBeneficiario.telefono || null,
+                estado: 'Activo'
+            };
+
+            await SegurosService.agregarBeneficiario(beneficiarioData);
+            setSuccessMessage("Beneficiario agregado exitosamente");
+            setShowBeneficiarioModal(false);
+            setFormBeneficiario({
+                nombreCompleto: '',
+                parentesco: '',
+                porcentaje: '',
+                dni: '',
+                telefono: '',
+                fechaNacimiento: '',
+                idSeguro: ''
+            });
+            cargarDatos();
+        } catch (error) {
+            console.error("Error al guardar beneficiario:", error);
+            setErrorMessage(error.response?.data || "Error al guardar el beneficiario");
+        }
+    };
+
     const handleCrearTramite = async (e) => {
         e.preventDefault();
         try {
@@ -249,59 +452,6 @@ export default function SegurosPage() {
         } catch (error) {
             console.error("Error al crear trámite:", error);
             setErrorMessage("Error al crear el trámite");
-        }
-    };
-
-    const handleGuardarPoliza = async (e) => {
-        e.preventDefault();
-        try {
-            const polizaData = {
-                usuario: { idUsuario: user.idUsuario },
-                tipoSeguro: { idTipoSeguro: parseInt(formPoliza.tipoSeguro) },
-                compania: { idCompania: parseInt(formPoliza.compania) },
-                numeroPoliza: formPoliza.numeroPoliza,
-                fechaInicio: formPoliza.fechaInicio,
-                fechaVencimiento: formPoliza.fechaVencimiento,
-                montoAsegurado: parseFloat(formPoliza.montoAsegurado),
-                primaMensual: parseFloat(formPoliza.primaMensual),
-                formaPago: formPoliza.formaPago,
-                estado: 'Vigente'
-            };
-
-            if (selectedPoliza) {
-                await SegurosService.actualizarPoliza(selectedPoliza.idSeguro, polizaData);
-                setSuccessMessage("Póliza actualizada exitosamente");
-            } else {
-                await SegurosService.crearPoliza(polizaData);
-                setSuccessMessage("Póliza creada exitosamente");
-            }
-
-            setShowPolizaModal(false);
-            limpiarFormularioPoliza();
-            cargarDatos();
-        } catch (error) {
-            console.error("Error al guardar póliza:", error);
-            setErrorMessage(error.response?.data?.mensaje || "Error al guardar la póliza");
-        }
-    };
-
-    const handlePagar = async (pago) => {
-        if (window.confirm(`¿Confirmar pago de ${formatCurrency(pago.montoPagado)}?`)) {
-            try {
-                const pagoData = {
-                    ...pago,
-                    estado: 'Pagado',
-                    fechaPago: new Date().toISOString().split('T')[0],
-                    metodoPago: 'Tarjeta'
-                };
-
-                await SegurosService.registrarPago(pagoData);
-                setSuccessMessage("Pago registrado exitosamente");
-                cargarDatos();
-            } catch (error) {
-                console.error("Error al registrar pago:", error);
-                setErrorMessage("Error al procesar el pago");
-            }
         }
     };
 
@@ -533,6 +683,13 @@ export default function SegurosPage() {
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
+                                                    <button
+                                                        onClick={() => handleNuevoBeneficiario(poliza)}
+                                                        className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1 rounded transition-colors"
+                                                        title="Agregar Beneficiario"
+                                                    >
+                                                        <Users className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -569,6 +726,7 @@ export default function SegurosPage() {
                                     <th className="px-4 py-3 text-left">Póliza</th>
                                     <th className="px-4 py-3 text-left">N° Cuota</th>
                                     <th className="px-4 py-3 text-right">Monto</th>
+                                    <th className="px-4 py-3 text-left">Vencimiento</th>
                                     <th className="px-4 py-3 text-left">Estado</th>
                                     <th className="px-4 py-3 text-center">Acción</th>
                                 </tr>
@@ -579,7 +737,10 @@ export default function SegurosPage() {
                                         <tr key={pago.idPago} className="hover:bg-gray-50">
                                             <td className="px-4 py-3">{pago.seguro?.numeroPoliza}</td>
                                             <td className="px-4 py-3">{pago.numeroCuota}</td>
-                                            <td className="px-4 py-3 text-right font-semibold">{formatCurrency(pago.montoPagado)}</td>
+                                            <td className="px-4 py-3 text-right font-semibold">{formatCurrency(pago.montoCuota || pago.montoPagado)}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                {pago.fechaVencimiento ? formatDate(pago.fechaVencimiento) : '-'}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getEstadoBadge(pago.estado)}`}>
                                                     {pago.estado}
@@ -589,15 +750,16 @@ export default function SegurosPage() {
                                                 <button 
                                                     onClick={() => handlePagar(pago)}
                                                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                                                    disabled={pago.estado === 'Pagado'}
                                                 >
-                                                    Pagar
+                                                    {pago.estado === 'Pagado' ? 'Pagado' : 'Pagar'}
                                                 </button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                                             No hay pagos pendientes
                                         </td>
                                     </tr>
@@ -700,10 +862,7 @@ export default function SegurosPage() {
                                 {selectedPoliza ? 'Editar Póliza' : 'Nueva Póliza'}
                             </h2>
                             <button
-                                onClick={() => {
-                                    setShowPolizaModal(false);
-                                    limpiarFormularioPoliza();
-                                }}
+                                onClick={() => setShowPolizaModal(false)}
                                 className="text-gray-400 hover:text-gray-600"
                             >
                                 <X className="w-6 h-6" />
@@ -712,6 +871,7 @@ export default function SegurosPage() {
 
                         <form onSubmit={handleGuardarPoliza} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Tipo de Seguro */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tipo de Seguro *
@@ -720,51 +880,65 @@ export default function SegurosPage() {
                                         name="tipoSeguro"
                                         value={formPoliza.tipoSeguro}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="1">Vida</option>
-                                        <option value="2">Salud</option>
-                                        <option value="3">Vehicular</option>
-                                        <option value="4">Hogar</option>
+                                        <option value="">Seleccione...</option>
+                                        {tiposSeguros.map(tipo => (
+                                            <option key={tipo.idTipoSeguro} value={tipo.idTipoSeguro}>
+                                                {tipo.nombre}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
+                                {/* Compañía */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Compañía *
+                                        Compañía Aseguradora *
                                     </label>
                                     <select
                                         name="compania"
                                         value={formPoliza.compania}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="1">Pacífico Seguros</option>
-                                        <option value="2">Rímac Seguros</option>
-                                        <option value="3">La Positiva</option>
-                                        <option value="4">Mapfre</option>
+                                        <option value="">Seleccione...</option>
+                                        {companias.map(comp => (
+                                            <option key={comp.idCompania} value={comp.idCompania}>
+                                                {comp.nombre}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
+                                {/* Número de Póliza */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        N° de Póliza *
+                                        Número de Póliza *
                                     </label>
-                                    <input
-                                        type="text"
-                                        name="numeroPoliza"
-                                        value={formPoliza.numeroPoliza}
-                                        onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        placeholder="POL-2024-001"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                        required
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            name="numeroPoliza"
+                                            value={formPoliza.numeroPoliza}
+                                            onChange={(e) => handleFormChange(e, setFormPoliza)}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormPoliza(prev => ({ ...prev, numeroPoliza: generarNumeroPoliza() }))}
+                                            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm"
+                                            title="Generar nuevo número"
+                                        >
+                                            🔄
+                                        </button>
+                                    </div>
                                 </div>
 
+                                {/* Forma de Pago */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Forma de Pago *
@@ -773,15 +947,18 @@ export default function SegurosPage() {
                                         name="formaPago"
                                         value={formPoliza.formaPago}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
                                     >
                                         <option value="Mensual">Mensual</option>
+                                        <option value="Bimestral">Bimestral</option>
                                         <option value="Trimestral">Trimestral</option>
                                         <option value="Semestral">Semestral</option>
                                         <option value="Anual">Anual</option>
                                     </select>
                                 </div>
 
+                                {/* Fecha Inicio */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Fecha de Inicio *
@@ -791,11 +968,12 @@ export default function SegurosPage() {
                                         name="fechaInicio"
                                         value={formPoliza.fechaInicio}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     />
                                 </div>
 
+                                {/* Fecha Vencimiento */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Fecha de Vencimiento *
@@ -805,53 +983,54 @@ export default function SegurosPage() {
                                         name="fechaVencimiento"
                                         value={formPoliza.fechaVencimiento}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     />
                                 </div>
 
+                                {/* Monto Asegurado */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Monto Asegurado (S/) *
                                     </label>
                                     <input
                                         type="number"
+                                        step="0.01"
                                         name="montoAsegurado"
                                         value={formPoliza.montoAsegurado}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        placeholder="50000"
-                                        step="0.01"
-                                        min="0"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     />
                                 </div>
 
+                                {/* Prima Mensual */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Prima Mensual (S/) *
                                     </label>
                                     <input
                                         type="number"
+                                        step="0.01"
                                         name="primaMensual"
                                         value={formPoliza.primaMensual}
                                         onChange={(e) => handleFormChange(e, setFormPoliza)}
-                                        placeholder="150.00"
-                                        step="0.01"
-                                        min="0"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                                         required
                                     />
                                 </div>
                             </div>
 
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Nota:</strong> Al crear la póliza, se generarán automáticamente los pagos según la forma de pago seleccionada.
+                                </p>
+                            </div>
+
                             <div className="flex justify-end gap-3 pt-4 border-t">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setShowPolizaModal(false);
-                                        limpiarFormularioPoliza();
-                                    }}
+                                    onClick={() => setShowPolizaModal(false)}
                                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
                                 >
                                     Cancelar
@@ -861,6 +1040,301 @@ export default function SegurosPage() {
                                     className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                                 >
                                     {selectedPoliza ? 'Actualizar' : 'Crear'} Póliza
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL NUEVO BENEFICIARIO */}
+            {showBeneficiarioModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">
+                                Agregar Beneficiario - Póliza {selectedPoliza?.numeroPoliza}
+                            </h2>
+                            <button
+                                onClick={() => setShowBeneficiarioModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleGuardarBeneficiario} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Nombre Completo */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Nombre Completo *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="nombreCompleto"
+                                        value={formBeneficiario.nombreCompleto}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Parentesco */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Parentesco *
+                                    </label>
+                                    <select
+                                        name="parentesco"
+                                        value={formBeneficiario.parentesco}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        <option value="Cónyuge">Cónyuge</option>
+                                        <option value="Hijo">Hijo/a</option>
+                                        <option value="Padre">Padre</option>
+                                        <option value="Madre">Madre</option>
+                                        <option value="Hermano">Hermano/a</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+
+                                {/* Porcentaje */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Porcentaje (%) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        max="100"
+                                        name="porcentaje"
+                                        value={formBeneficiario.porcentaje}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
+                                    />
+                                </div>
+
+                                {/* DNI */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        DNI
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="dni"
+                                        value={formBeneficiario.dni}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        maxLength="20"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    />
+                                </div>
+
+                                {/* Fecha de Nacimiento */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Fecha de Nacimiento
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="fechaNacimiento"
+                                        value={formBeneficiario.fechaNacimiento}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    />
+                                </div>
+
+                                {/* Teléfono */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Teléfono
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        name="telefono"
+                                        value={formBeneficiario.telefono}
+                                        onChange={(e) => handleFormChange(e, setFormBeneficiario)}
+                                        maxLength="20"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={`border rounded-lg p-4 mt-4 ${porcentajeDisponible > 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+                                <div className="flex justify-between items-center mb-2">
+                                    <p className={`text-sm font-medium ${porcentajeDisponible > 0 ? 'text-blue-800' : 'text-red-800'}`}>
+                                        Porcentaje disponible:
+                                    </p>
+                                    <span className={`text-2xl font-bold ${porcentajeDisponible > 0 ? 'text-blue-900' : 'text-red-900'}`}>
+                                        {porcentajeDisponible}%
+                                    </span>
+                                </div>
+                                <p className={`text-xs ${porcentajeDisponible > 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                                    {porcentajeDisponible > 0 
+                                        ? `Puedes asignar hasta ${porcentajeDisponible}% a este beneficiario.`
+                                        : 'Ya se ha asignado el 100% del beneficio. No puedes agregar más beneficiarios.'}
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBeneficiarioModal(false)}
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                                >
+                                    Agregar Beneficiario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL PROCESAR PAGO */}
+            {showPagoModal && selectedPago && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">Procesar Pago</h2>
+                            <button
+                                onClick={() => setShowPagoModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-gray-600">Póliza:</span>
+                                <span className="font-semibold">{selectedPago.seguro?.numeroPoliza}</span>
+                            </div>
+                            <div className="flex justify-between mb-2">
+                                <span className="text-gray-600">Cuota:</span>
+                                <span className="font-semibold">#{selectedPago.numeroCuota}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Monto a pagar:</span>
+                                <span className="text-2xl font-bold text-green-600">
+                                    {formatCurrency(selectedPago.montoCuota)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleProcesarPago} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Método de Pago
+                                </label>
+                                <select
+                                    name="metodoPago"
+                                    value={formPago.metodoPago}
+                                    onChange={(e) => handleFormChange(e, setFormPago)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    required
+                                >
+                                    <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+                                    <option value="Tarjeta de débito">Tarjeta de débito</option>
+                                    <option value="Transferencia bancaria">Transferencia bancaria</option>
+                                    <option value="Débito automático">Débito automático</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Número de Tarjeta
+                                </label>
+                                <input
+                                    type="text"
+                                    name="numeroTarjeta"
+                                    value={formPago.numeroTarjeta}
+                                    onChange={(e) => handleFormChange(e, setFormPago)}
+                                    placeholder="1234 5678 9012 3456"
+                                    maxLength="19"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre del Titular
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nombreTitular"
+                                    value={formPago.nombreTitular}
+                                    onChange={(e) => handleFormChange(e, setFormPago)}
+                                    placeholder="Como aparece en la tarjeta"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Fecha de Expiración
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="fechaExpiracion"
+                                        value={formPago.fechaExpiracion}
+                                        onChange={(e) => handleFormChange(e, setFormPago)}
+                                        placeholder="MM/AA"
+                                        maxLength="5"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        CVV
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="cvv"
+                                        value={formPago.cvv}
+                                        onChange={(e) => handleFormChange(e, setFormPago)}
+                                        placeholder="123"
+                                        maxLength="4"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
+                                <p className="text-sm text-green-800 flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Transacción segura y encriptada
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPagoModal(false)}
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                                >
+                                    Pagar {formatCurrency(selectedPago.montoCuota)}
                                 </button>
                             </div>
                         </form>
