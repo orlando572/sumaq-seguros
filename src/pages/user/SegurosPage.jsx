@@ -13,10 +13,13 @@ import {
     AlertCircle,
     CheckCircle2,
     Clock,
-    X
+    X,
+    Loader2,
+    FileDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SegurosService from '../../service/user/SegurosService';
+import PdfExportService from '../../service/user/PdfExportService';
 
 export default function SegurosPage() {
     const { user } = useAuth();
@@ -28,6 +31,10 @@ export default function SegurosPage() {
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+
+    // Estados para exportación PDF
+    const [exportando, setExportando] = useState(false);
+    const [mensajeExportacion, setMensajeExportacion] = useState({ tipo: '', texto: '' });
 
     // Estados para secciones expandibles
     const [expandedSections, setExpandedSections] = useState({
@@ -87,6 +94,16 @@ export default function SegurosPage() {
         }
     }, [successMessage, errorMessage]);
 
+    // Limpiar mensajes de exportación
+    useEffect(() => {
+        if (mensajeExportacion.texto) {
+            const timer = setTimeout(() => {
+                setMensajeExportacion({ tipo: '', texto: '' });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [mensajeExportacion]);
+
     const cargarDatos = async () => {
         setLoading(true);
         try {
@@ -111,6 +128,40 @@ export default function SegurosPage() {
             setErrorMessage("Error al cargar los datos de seguros");
         } finally {
             setLoading(false);
+        }
+    };
+
+    /**
+     * Función para exportar Gestión de Seguros a PDF
+     */
+    const handleExportarPDF = async () => {
+        if (!user?.idUsuario) {
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Usuario no identificado'
+            });
+            return;
+        }
+
+        setExportando(true);
+        setMensajeExportacion({ tipo: '', texto: '' });
+
+        try {
+            await PdfExportService.descargarGestionSeguros(user.idUsuario);
+            
+            setMensajeExportacion({
+                tipo: 'success',
+                texto: '¡PDF de Gestión de Seguros descargado exitosamente!'
+            });
+        } catch (error) {
+            console.error("Error al exportar PDF:", error);
+            
+            setMensajeExportacion({
+                tipo: 'error',
+                texto: 'Error al generar el PDF. Por favor, intenta nuevamente.'
+            });
+        } finally {
+            setExportando(false);
         }
     };
 
@@ -318,7 +369,48 @@ export default function SegurosPage() {
                 </div>
             )}
 
-            <h1 className="text-3xl font-bold text-gray-800">Gestión de Seguros</h1>
+            {/* Mensajes de exportación */}
+            {mensajeExportacion.texto && (
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+                    mensajeExportacion.tipo === 'success' 
+                        ? 'bg-green-100 border-green-400 text-green-700' 
+                        : 'bg-red-100 border-red-400 text-red-700'
+                }`}>
+                    {mensajeExportacion.tipo === 'success' ? (
+                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                    ) : (
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    )}
+                    <span>{mensajeExportacion.texto}</span>
+                </div>
+            )}
+
+            {/* Header con botón de exportar */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-gray-800">Gestión de Seguros</h1>
+                
+                <button
+                    onClick={handleExportarPDF}
+                    disabled={exportando}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                        exportando
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-teal-600 hover:bg-teal-700 text-white'
+                    }`}
+                >
+                    {exportando ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Generando PDF...</span>
+                        </>
+                    ) : (
+                        <>
+                            <FileDown className="w-4 h-4" />
+                            <span>Exportar a PDF</span>
+                        </>
+                    )}
+                </button>
+            </div>
 
             {/* RESUMEN ADMINISTRATIVO */}
             {resumen && (
@@ -373,8 +465,22 @@ export default function SegurosPage() {
                         >
                             <Plus className="w-4 h-4" /> Nueva póliza
                         </button>
-                        <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                            <Download className="w-4 h-4" /> Exportar
+                        <button 
+                            onClick={handleExportarPDF}
+                            disabled={exportando}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            {exportando ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Exportando...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4" />
+                                    Exportar
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
