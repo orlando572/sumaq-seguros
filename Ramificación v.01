@@ -1,0 +1,92 @@
+sumaq-seguros/
+│
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package.json
+├── vite.config.js
+├── postcss.config.js
+├── tailwind.config.js
+│
+└── src/
+    ├── main.jsx               # Punto de entrada principal 
+    ├── App.jsx                # Componente raíz con rutas principales
+    │
+    ├── assets/                # Archivos estáticos (
+    │
+    ├── components/            # Componentes reutilizables (botones, cards, inputs)
+    │   ├── Navbar.jsx
+    │   ├── Footer.jsx
+    │   ├── Sidebar.jsx
+    │   ├── CardSeguro.jsx
+    │   ├── ComparadorCard.jsx
+    │   └── ...
+    │
+    ├── features/              # Módulos o secciones funcionales del sistema
+    │   ├── adminAfp/                  # Administración de AFP
+    │   │   ├── components/
+    │   │   ├── pages/
+    │   │   └── services/
+    │   │
+    │   ├── jwt/                       # Manejo de autenticación con JWT
+    │   │   ├── authService.js
+    │   │   ├── useAuth.jsx
+    │   │   └── ProtectedRoute.jsx
+    │   │
+    │   ├── dashboard/                 # Panel principal
+    │   │   ├── DashboardPage.jsx
+    │   │   ├── Charts.jsx
+    │   │   └── StatsCard.jsx
+    │   │
+    │   ├── optimizacion/              # Optimización de cotizaciones o procesos
+    │   │   ├── OptimizarSeguros.jsx
+    │   │   └── utils/
+    │   │
+    │   ├── seguros/                   # Sección de gestión de seguros
+    │   │   ├── ListadoSeguros.jsx
+    │   │   ├── DetalleSeguro.jsx
+    │   │   └── FormSeguro.jsx
+    │   │
+    │   ├── comparador/                # Comparador de productos AFP/ ONP/ Seguros
+    │   │   ├── ComparadorPage.jsx
+    │   │   ├── CompararCard.jsx
+    │   │   └── comparadorService.js
+    │   │
+    │   ├── financieroAdminPensiones/  # Gestión financiera de pensiones
+    │   │   ├── FinancieroDashboard.jsx
+    │   │   └── PensionStats.jsx
+    │   │
+    │   ├── adminFinanciero/           # Control de usuarios financieros
+    │   │   ├── ListadoFinancieros.jsx
+    │   │   └── EditarFinanciero.jsx
+    │   │
+    │   ├── pensiones/                 # Módulo de cálculo y visualización de pensiones
+    │   │   ├── CalculadoraPension.jsx
+    │   │   ├── DetallePension.jsx
+    │   │   └── pensionService.js
+    │   │
+    │   ├── adminUser/                 # Administración de usuarios
+    │   │   ├── UserTable.jsx
+    │   │   ├── EditUserForm.jsx
+    │   │   └── userService.js
+    │   │
+    │   └── user/                      # Interfaz del usuario final
+    │       ├── PerfilUsuario.jsx
+    │       ├── HistorialAsesoramiento.jsx
+    │       └── userService.js
+    │
+    ├── hooks/                # Hooks personalizadoos
+    │   ├── useFetch.jsx
+    │   └── useForm.jsx
+    │
+    ├── routes/               # Definición central de rutas-React Router DOM
+    │   └── AppRouter.jsx
+    │
+    ├── styles/               # Archivos CSS globales o base de Tailwind
+    │   ├── index.css
+    │   └── tailwind.css
+    │
+    └── utils/                # Funciones auxiliares (formatos y/o validaciones de estos)
+        ├── formatDate.js
+        ├── validations.js
+        └── constants.js
