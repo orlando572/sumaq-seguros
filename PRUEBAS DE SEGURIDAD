@@ -34,9 +34,18 @@ Severidad: ALTA — Recomendación: revisar roles y autorización.
 ├─ sample-tests/e2e/
 └─ resumen_ejecutivo.md
 
+Los tests unitarios, integración y E2E van en src/test/java/...
+Los scripts (restore_db.sh, sqlmap.sh, ffuf.sh, zap.sh) apuntan a los endpoints REST que ya están en backend.
+La base de datos que usa tu proyecto es PostgreSQL.
+
+///
 /frontend-sumaq-seguros
 ├─ scripts/
 ├─ reportes/
 ├─ sample-tests/unit/
 ├─ sample-tests/e2e/
 └─ resumen_ejecutivo.md
+
+Tests unitarios → Jest / React Testing Library para los componentes React que ya existen.
+E2E Cypress para flujos como login, CRUD de seguros, navegación entre componentes.
+Seguridad ZAP / Burp puede escanear la app corriendo en localhost:3000 (React) y sus llamadas al backend en localhost:8080.
