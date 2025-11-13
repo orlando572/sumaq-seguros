@@ -23,3 +23,20 @@ Severidad: MEDIA — Recomendación: configurar seguridad en Spring Security / s
 
 Usuarios sin control de acceso en endpoints administrativos # El tema de clave sol...
 Severidad: ALTA — Recomendación: revisar roles y autorización.
+
+///
+
+/backend-financiera
+├─ scripts/
+├─ reportes/
+├─ sample-tests/unit/
+├─ sample-tests/integration/
+├─ sample-tests/e2e/
+└─ resumen_ejecutivo.md
+
+/frontend-sumaq-seguros
+├─ scripts/
+├─ reportes/
+├─ sample-tests/unit/
+├─ sample-tests/e2e/
+└─ resumen_ejecutivo.md
