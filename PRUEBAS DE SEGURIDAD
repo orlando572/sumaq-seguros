@@ -1,0 +1,25 @@
+pruebas-seguridad/
+├─ scripts/
+│  ├─ docker-compose.yml
+│  ├─ zap.sh
+│  ├─ sqlmap.sh
+│  ├─ ffuf.sh
+│  └─ restore_db.sh
+├─ reportes/              # aquí caerán los reports generados
+├─ artifacts/             # outputs .txt/.log 
+├─ ci.yml                 # workflow 
+├─ sample-tests/
+│  ├─ unit/ItemServiceTest.java
+│  ├─ integration/ItemServiceIntegrationTest.java
+│  └─ e2e/ItemE2ETest.java
+└─ README_PRUEBAS.md  # instrucciones de uso corto (abajo hay contenido)
+
+
+Inyección SQL (endpoint /api/items?id=) 
+Severidad: ALTA — Recomendación: parametrizar consultas y usar ORM + prepared statements.
+
+Cabeceras de seguridad faltantes (X-Content-Type-Options, X-Frame-Options) 
+Severidad: MEDIA — Recomendación: configurar seguridad en Spring Security / servidores.
+
+Usuarios sin control de acceso en endpoints administrativos # El tema de clave sol...
+Severidad: ALTA — Recomendación: revisar roles y autorización.
