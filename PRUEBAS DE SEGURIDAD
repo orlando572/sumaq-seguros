@@ -49,3 +49,24 @@ La base de datos que usa tu proyecto es PostgreSQL.
 Tests unitarios → Jest / React Testing Library para los componentes React que ya existen.
 E2E Cypress para flujos como login, CRUD de seguros, navegación entre componentes.
 Seguridad ZAP / Burp puede escanear la app corriendo en localhost:3000 (React) y sus llamadas al backend en localhost:8080.
+
+///
+///
+RESpal
+# Evidencia de Pruebas y Seguridad – SUMAQSEGUROS
+
+## Backend – FINANCIERA
+- Reporte ZAP (HTML): {{GITHUB_RELEASE_URL}}/zap_backend.html
+- SQL Injection (sqlmap output): {{GITHUB_RELEASE_URL}}/sqlmap_backend.txt
+- Fuzzing (ffuf output): {{GITHUB_RELEASE_URL}}/ffuf_backend.json
+- Escaneo de dependencias (Snyk backend): {{SNYK_PROJECT_URL}}
+
+## Frontend – SUMAQ-SEGUROS
+- Reporte ZAP / Burp (HTML): {{GITHUB_RELEASE_URL}}/zap_frontend.html
+- Escaneo de dependencias (Snyk frontend): {{SNYK_PROJECT_URL_FRONTEND}}
+- Frontend demo desplegado: {{NETLIFY_URL}}
+
+## Otros artefactos
+- Backend demo (ngrok / Render): {{BACKEND_PUBLIC_URL}}
+- Presentación / Resumen Ejecutivo (PDF): {{GOOGLE_DRIVE_LINK}}
+
