@@ -70,3 +70,63 @@ RESpal
 - Backend demo (ngrok / Render): {{BACKEND_PUBLIC_URL}}
 - Presentación / Resumen Ejecutivo (PDF): {{GOOGLE_DRIVE_LINK}}
 
+/////
+BACKEND
+BASH
+
+RESTOR
+#!/usr/bin/env bash
+set -e
+DB_HOST="${1:-localhost}"
+DB_PORT="${2:-5432}"
+DB_NAME="${3:-financiera_test}"
+DB_USER="${4:-test}"
+DB_PASS="${5:-test}"
+SCHEMA_FILE="$(dirname "$0")/../schema.sql"
+DATA_FILE="$(dirname "$0")/../data.sql"
+
+echo "[*] Restaurando DB ${DB_NAME} en ${DB_HOST}:${DB_PORT}"
+PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCHEMA_FILE"
+PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$DATA_FILE"
+echo "[+] DB restaurada"
+////
+
+ZAP - con el front end+bchend
+#!/usr/bin/env bash
+set -e
+TARGET="${1:-http://localhost:8080}"
+REPORT_DIR="$(dirname "$0")/../reportes"
+REPORT_HTML="${REPORT_DIR}/zap_backend_$(date +%Y%m%d_%H%M%S).html"
+mkdir -p "$REPORT_DIR"
+
+echo "[*] Iniciando ZAP (local) y escaneando $TARGET"
+docker run --rm -d --name zap0 -p 8090:8090 owasp/zap2docker-stable zap.sh -daemon -port 8090 -config api.disablekey=true
+sleep 8
+docker exec zap0 zap-cli -p 8090 status || true
+docker exec zap0 zap-cli -p 8090 spider "$TARGET"
+docker exec zap0 zap-cli -p 8090 -v active-scan "$TARGET" || true
+docker exec zap0 zap-cli -p 8090 report -o /zap/reports/report.html -f html || true
+docker cp zap0:/zap/reports/report.html "$REPORT_HTML" 2>/dev/null || true
+docker rm -f zap0 >/dev/null 2>&1 || true
+echo "[+] Reporte ZAP: $REPORT_HTML"
+
+**
+#!/usr/bin/env bash
+set -e
+TARGET="${1:-http://localhost:8080}"
+REPORT_DIR="$(dirname "$0")/../reportes"
+REPORT_HTML="${REPORT_DIR}/zap_backend_$(date +%Y%m%d_%H%M%S).html"
+mkdir -p "$REPORT_DIR"
+
+separar con el de pruebas back - deslindar
+#eliminar
+echo "[*] Iniciando ZAP (local) y escaneando $TARGET"
+docker run --rm -d --name zap0 -p 8090:8090 owasp/zap2docker-stable zap.sh -daemon -port 8090 -config api.disablekey=true
+sleep 8
+docker exec zap0 zap-cli -p 8090 status || true
+docker exec zap0 zap-cli -p 8090 spider "$TARGET"
+docker exec zap0 zap-cli -p 8090 -v active-scan "$TARGET" || true
+docker exec zap0 zap-cli -p 8090 report -o /zap/reports/report.html -f html || true
+docker cp zap0:/zap/reports/report.html "$REPORT_HTML" 2>/dev/null || true
+docker rm -f zap0 >/dev/null 2>&1 || true
+echo "[+] Reporte ZAP: $REPORT_HTML"
